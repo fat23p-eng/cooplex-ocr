@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoopLex OCR — แปลง PDF สแกน → Word</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070c18;--sf:#0f1929;--sf2:#162236;--sf3:#1c2d47;
+  --bd:#1e3254;--ac:#2196f3;--ac2:#42a5f5;
+  --go:#f59e0b;--gr:#10b981;--re:#ef4444;--pu:#a78bfa;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#4a6080;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sarabun','Noto Sans Thai',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(33,150,243,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(33,150,243,.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;padding:0 20px;border-bottom:1px solid var(--bd);background:rgba(7,12,24,.96);backdrop-filter:blur(20px);display:flex;align-items:center;height:56px;gap:10px;}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--ac),var(--go));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 18px rgba(33,150,243,.35);}
+.logo-text{font-size:17px;font-weight:700;background:linear-gradient(135deg,#fff,var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-sub{font-size:10px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;-webkit-text-fill-color:var(--tx3);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);box-shadow:0 0 6px var(--gr);animation:blink 1.8s ease infinite;margin-left:auto;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* WRAP */
+.wrap{max-width:760px;margin:0 auto;padding:28px 18px 80px;position:relative;z-index:1;}
+
+/* CARDS */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;overflow:hidden;}
+.card:nth-child(1){animation:fadeUp .4s ease both;}
+.card:nth-child(2){animation:fadeUp .4s ease .07s both;}
+.card:nth-child(3){animation:fadeUp .4s ease .14s both;}
+.card:nth-child(4){animation:fadeUp .4s ease .21s both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.card-head{padding:12px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
+.card-body{padding:16px 18px;}
+
+/* INFO BOX */
+.info-box{padding:11px 14px;border-radius:9px;font-size:12px;line-height:1.75;margin-bottom:14px;}
+.ib-blue{background:rgba(33,150,243,.07);border:1px solid rgba(33,150,243,.2);color:var(--tx2);}
+.ib-gold{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:var(--tx2);}
+.ib-green{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);color:var(--tx2);}
+
+/* INPUTS */
+.field{margin-bottom:12px;}
+.field:last-child{margin-bottom:0;}
+label.flabel{display:block;font-size:12px;color:var(--tx2);margin-bottom:5px;}
+input[type=text]{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:14px;font-family:'Sarabun',sans-serif;outline:none;transition:border-color .2s;width:100%;}
+input[type=text]:focus{border-color:var(--ac);}
+
+/* RADIO */
+.rgroup{display:flex;gap:8px;flex-wrap:wrap;}
+.rbtn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd);cursor:pointer;transition:all .2s;font-size:12px;user-select:none;color:var(--tx2);background:var(--sf2);}
+.rbtn:hover{border-color:var(--tx2);}
+.rbtn.active-gr{border-color:var(--gr);background:rgba(16,185,129,.1);color:var(--gr);}
+.rbtn.active-go{border-color:var(--go);background:rgba(245,158,11,.1);color:var(--go);}
+.rbtn.active-ac{border-color:var(--ac);background:rgba(33,150,243,.1);color:var(--ac);}
+.rbtn.active-pu{border-color:var(--pu);background:rgba(167,139,250,.1);color:var(--pu);}
+
+/* DROP ZONE */
+.dropzone{border:2px dashed var(--bd);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.dropzone:hover,.dropzone.drag{border-color:var(--ac);background:rgba(33,150,243,.04);}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.dz-icon{font-size:32px;margin-bottom:8px;}
+.dz-text{font-size:14px;color:var(--tx2);}
+.dz-sub{font-size:11px;color:var(--tx3);margin-top:4px;}
+
+/* FILE LIST */
+.flist{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.fitem{display:flex;align-items:center;gap:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;}
+.fi-name{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fi-info{font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.fi-rm{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;transition:color .2s;padding:0 2px;}
+.fi-rm:hover{color:var(--re);}
+.cost-chip{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:6px;background:rgba(245,158,11,.1);color:var(--go);border:1px solid rgba(245,158,11,.2);margin-left:auto;}
+
+/* PROGRESS */
+.prog-wrap{background:var(--sf3);border-radius:8px;overflow:hidden;height:7px;margin-bottom:8px;}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));transition:width .4s ease;width:0%;}
+.prog-status{font-size:12px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;}
+.logbox{background:#050a14;border:1px solid var(--bd);border-radius:9px;padding:12px;height:150px;overflow-y:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.8;}
+.logbox .ok{color:var(--gr);}
+.logbox .err{color:var(--re);}
+.logbox .info{color:var(--ac);}
+
+/* BUTTONS */
+.run-btn{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--ac),#0d7fd4);border:none;color:#fff;font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(33,150,243,.3);margin-top:4px;}
+.run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(33,150,243,.4);}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.sm-btn{padding:8px 16px;border-radius:8px;border:none;color:#fff;font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;}
+.sm-btn:hover{transform:translateY(-1px);}
+
+/* RESULT */
+.result-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;margin-top:10px;overflow:hidden;animation:fadeUp .4s ease both;}
+.rc-head{padding:12px 16px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rc-preview{padding:14px 16px;font-size:13px;line-height:1.9;color:var(--tx2);max-height:250px;overflow-y:auto;white-space:pre-wrap;font-family:'Sarabun',sans-serif;border-bottom:1px solid var(--bd);}
+.rc-foot{padding:10px 16px;background:var(--sf2);display:flex;gap:8px;flex-wrap:wrap;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sf2);border:1px solid var(--bd);border-radius:30px;padding:10px 20px;font-size:13px;z-index:999;color:var(--tx);box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toastIn .3s ease both;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+@media(max-width:600px){.wrap{padding:16px 12px 60px;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">📄</div>
+  <div>
+    <div class="logo-text">CoopLex OCR</div>
+    <div class="logo-sub">PDF SCAN → WORD</div>
+  </div>
+  <div class="live-dot"></div>
+</header>
+
+<div class="wrap">
+
+  <!-- STEP 1: INFO -->
+  <div class="card">
+    <div class="card-head">ℹ️ วิธีใช้งาน</div>
+    <div class="card-body">
+      <div class="info-box ib-green">
+        ✅ ระบบพร้อมใช้งาน — Claude API Key ถูกเก็บไว้ใน Server อย่างปลอดภัย<br>
+        📄 รองรับ PDF สแกน, PDF ฟอนต์พิเศษ, PDF ราชกิจจา ทุกประเภท<br>
+        💰 ค่าใช้จ่าย ~฿0.50-1.00 ต่อหน้า (หักจาก Claude API ของเจ้าของระบบ)
+      </div>
+      <div class="info-box ib-gold" style="margin-bottom:0">
+        ⚠️ ไฟล์ PDF ที่แนบจะถูกส่งให้ Claude อ่านชั่วคราวเท่านั้น ไม่มีการเก็บข้อมูลในระบบ
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: SETTINGS -->
+  <div class="card">
+    <div class="card-head">⚙️ ตั้งค่า</div>
+    <div class="card-body">
+      <div class="field">
+        <label class="flabel">ความละเอียด (DPI) — ยิ่งสูงยิ่งแม่นยำแต่ช้ากว่า</label>
+        <div class="rgroup" id="dpiGroup">
+          <div class="rbtn active-go" onclick="setDPI(150,this)">150 — เร็ว/ประหยัด</div>
+          <div class="rbtn active-gr" onclick="setDPI(200,this)">200 — แนะนำ ✅</div>
+          <div class="rbtn active-pu" onclick="setDPI(300,this)">300 — แม่นยำสูง</div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">รูปแบบผลลัพธ์</label>
+        <div class="rgroup" id="fmtGroup">
+          <div class="rbtn active-ac" onclick="setFmt('docx',this)">📝 Word (.docx) แนะนำ</div>
+          <div class="rbtn" onclick="setFmt('txt',this)">📄 Text (.txt)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: FILES -->
+  <div class="card">
+    <div class="card-head">
+      📂 เลือกไฟล์ PDF
+      <span class="cost-chip" id="costChip">0 หน้า / ฿0</span>
+    </div>
+    <div class="card-body">
+      <div class="dropzone" id="dz"
+        ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddr(event)">
+        <input type="file" id="fileIn" accept=".pdf" multiple onchange="addFiles(this.files)">
+        <div class="dz-icon">📋</div>
+        <div class="dz-text">คลิกหรือลากไฟล์ PDF มาวางที่นี่</div>
+        <div class="dz-sub">รองรับหลายไฟล์ • PDF สแกน / ฟอนต์พิเศษ / ราชกิจจา</div>
+      </div>
+      <div class="flist" id="flist"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: RUN -->
+  <div class="card">
+    <div class="card-head">🤖 แปลงด้วย Claude AI</div>
+    <div class="card-body">
+      <button class="run-btn" id="runBtn" onclick="startOCR()">
+        🤖 เริ่มแปลง PDF → Word
+      </button>
+      <div id="progSec" style="display:none;margin-top:14px;">
+        <div class="prog-wrap"><div class="prog-bar" id="progBar"></div></div>
+        <div class="prog-status" id="progStatus">กำลังเริ่ม...</div>
+        <div class="logbox" id="logBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+let files     = [];
+let dpi       = 200;
+let fmt       = 'docx';
+let running   = false;
+let allResults = [];
+
+// ← Vercel จะ inject URL อัตโนมัติ ไม่ต้องแก้
+const API_URL = '/api/ocr';
+
+// ════════════════════════════════════════════
+// UI
+// ════════════════════════════════════════════
+function setDPI(val, el) {
+  dpi = val;
+  const cls = { 150:'active-go', 200:'active-gr', 300:'active-pu' };
+  document.querySelectorAll('#dpiGroup .rbtn').forEach(b => {
+    b.className = 'rbtn';
+  });
+  el.classList.add(cls[val] || 'active-gr');
+  updateCost();
+}
+
+function setFmt(val, el) {
+  fmt = val;
+  document.querySelectorAll('#fmtGroup .rbtn').forEach(b => b.className = 'rbtn');
+  el.classList.add('active-ac');
+}
+
+function dov(e) { e.preventDefault(); document.getElementById('dz').classList.add('drag'); }
+function dlv(e) { document.getElementById('dz').classList.remove('drag'); }
+function ddr(e) { e.preventDefault(); dlv(e); addFiles(e.dataTransfer.files); }
+
+function addFiles(fs) {
+  Array.from(fs).forEach(f => {
+    if (f.type === 'application/pdf' && !files.find(x => x.name === f.name))
+      files.push(f);
+  });
+  renderFiles(); updateCost();
+}
+
+function removeFile(name) {
+  files = files.filter(f => f.name !== name);
+  renderFiles(); updateCost();
+}
+
+function estPages(f) { return Math.max(1, Math.round(f.size / 50000)); }
+
+function updateCost() {
+  const pages = files.reduce((s, f) => s + estPages(f), 0);
+  document.getElementById('costChip').textContent =
+    pages > 0 ? `~${pages} หน้า / ฿${Math.ceil(pages * 0.75)}` : '0 หน้า / ฿0';
+}
+
+function renderFiles() {
+  document.getElementById('flist').innerHTML = files.map(f => `
+    <div class="fitem">
+      <span>📋</span>
+      <span class="fi-name">${f.name}</span>
+      <span class="fi-info">~${estPages(f)} หน้า</span>
+      <button class="fi-rm" onclick="removeFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
+    </div>`).join('');
+}
+
+function log(msg, type = '') {
+  const box = document.getElementById('logBox');
+  const d   = document.createElement('div');
+  d.className = type; d.textContent = msg;
+  box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+
+function setProgress(pct, status) {
+  document.getElementById('progBar').style.width = pct + '%';
+  document.getElementById('progStatus').textContent = status;
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ════════════════════════════════════════════
+// PDF → IMAGES (PDF.js)
+// ════════════════════════════════════════════
+async function pdfToImages(file, dpiVal) {
+  if (!window.pdfjsLib) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const pdf    = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const scale  = dpiVal / 72;
+  const images = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page     = await pdf.getPage(i);
+    const vp       = page.getViewport({ scale });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    images.push({ pageNum: i, dataUrl: canvas.toDataURL('image/png') });
+  }
+  return images;
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ════════════════════════════════════════════
+// CALL VERCEL API
+// ════════════════════════════════════════════
+async function ocrPage(dataUrl, pageNum) {
+  const res = await fetch(API_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      imageBase64: dataUrl.split(',')[1],
+      pageNum,
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.text;
+}
+
+// ════════════════════════════════════════════
+// MAIN
+// ════════════════════════════════════════════
+async function startOCR() {
+  if (running) return;
+  if (!files.length) return alert('กรุณาเลือกไฟล์ PDF ก่อน');
+
+  running = true;
+  allResults = [];
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = '⏳ กำลังแปลง...';
+  document.getElementById('progSec').style.display = 'block';
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('results').innerHTML = '';
+
+  const total = files.length;
+  log(`🚀 เริ่มแปลง ${total} ไฟล์`, 'info');
+
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    log(`\n📄 [${fi+1}/${total}] ${file.name}`, 'info');
+    setProgress((fi / total) * 100, `โหลด ${file.name}...`);
+
+    try {
+      log('   แปลง PDF เป็นรูปภาพ (PDF.js)...', '');
+      const images = await pdfToImages(file, dpi);
+      log(`   พบ ${images.length} หน้า`, 'ok');
+
+      const pages = [];
+      for (let pi = 0; pi < images.length; pi++) {
+        const { pageNum, dataUrl } = images[pi];
+        setProgress(((fi + (pi+1)/images.length) / total) * 100,
+          `${file.name} — Claude อ่านหน้า ${pageNum}/${images.length}`);
+        log(`   🤖 หน้า ${pageNum}/${images.length}...`, '');
+
+        try {
+          const text = await ocrPage(dataUrl, pageNum);
+          pages.push({ pageNum, text });
+          log(`      ✅ "${text.slice(0,55).replace(/\n/g,' ')}..."`, 'ok');
+        } catch(e) {
+          log(`      ❌ หน้า ${pageNum}: ${e.message}`, 'err');
+          pages.push({ pageNum, text: `[อ่านไม่ได้: ${e.message}]` });
+        }
+
+        if (pi < images.length - 1) await sleep(700);
+      }
+
+      allResults.push({ name: file.name, pages });
+      log(`   ✅ ${file.name} เสร็จ`, 'ok');
+
+    } catch(e) {
+      log(`   ❌ ${e.message}`, 'err');
+    }
+  }
+
+  setProgress(100, '✅ เสร็จแล้ว!');
+  log('\n✅ แปลงครบทุกไฟล์', 'ok');
+  renderResults();
+
+  running = false;
+  btn.disabled = false; btn.textContent = '🤖 เริ่มแปลง PDF → Word';
+}
+
+// ════════════════════════════════════════════
+// RESULTS
+// ════════════════════════════════════════════
+function renderResults() {
+  document.getElementById('results').innerHTML = allResults.map((r, i) => {
+    const allText = r.pages.map(p => p.text).join('\n\n');
+    return `
+    <div class="result-card">
+      <div class="rc-head">
+        <span style="font-size:13px;font-weight:600">📄 ${r.name}</span>
+        <span style="font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace">${r.pages.length} หน้า</span>
+      </div>
+      <div class="rc-preview">${allText.slice(0, 400)}${allText.length > 400 ? '\n...' : ''}</div>
+      <div class="rc-foot">
+        <button class="sm-btn" style="background:linear-gradient(135deg,var(--ac),#0d7fd4)"
+          onclick="dlDocx(${i})">📝 Word</button>
+        <button class="sm-btn" style="background:linear-gradient(135deg,var(--gr),#059669)"
+          onclick="dlTxt(${i})">📄 TXT</button>
+        <button class="sm-btn" style="background:var(--sf3);color:var(--tx2)"
+          onclick="copyAll(${i})">📋 คัดลอก</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function dlDocx(i) {
+  const r    = allResults[i];
+  const stem = r.name.replace(/\.pdf$/i, '');
+  const texts = r.pages.map(p => p.text);
+  try {
+    const blob = await makeDocx(stem, texts);
+    triggerDL(blob, stem + '.docx');
+    toast('✅ ดาวน์โหลด Word แล้ว!');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+function dlTxt(i) {
+  const r    = allResults[i];
+  const stem = r.name.replace(/\.pdf$/i, '');
+  const txt  = r.pages.map(p => `\n[หน้า ${p.pageNum}]\n${'─'.repeat(40)}\n${p.text.trim()}`).join('\n');
+  triggerDL(new Blob([txt], { type: 'text/plain;charset=utf-8' }), stem + '.txt');
+  toast('✅ ดาวน์โหลด TXT แล้ว!');
+}
+
+function copyAll(i) {
+  navigator.clipboard.writeText(allResults[i].pages.map(p => p.text).join('\n\n'))
+    .then(() => toast('✅ คัดลอกแล้ว!'));
+}
+
+// ════════════════════════════════════════════
+// MAKE DOCX
+// ════════════════════════════════════════════
+async function makeDocx(title, pagesText) {
+  const body = pagesText.map((text, i) => {
+    const lines = text.split('\n').filter(l => l.trim()).map(line => {
+      line = line.trim();
+      const esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      let bold = '', color = '000000', size = '28';
+      if (['หมวด','ภาค','กฎกระทรวง','ระเบียบ','ประกาศ','พระราชบัญญัติ'].some(k => line.startsWith(k))) {
+        bold = '<w:b/>'; color = '1a5c8a'; size = '30';
+      } else if (/^มาตรา\s*\d|^ข้อ\s*\d/.test(line)) {
+        bold = '<w:b/>'; color = '8b0000';
+      }
+      return `<w:p><w:r><w:rPr>${bold}<w:color w:val="${color}"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr><w:t xml:space="preserve">${esc}</w:t></w:r></w:p>`;
+    }).join('');
+    const hdr = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="94a3b8"/><w:sz w:val="18"/></w:rPr><w:t>— หน้า ${i+1} —</w:t></w:r></w:p>`;
+    const sep = i < pagesText.length-1 ? `<w:p><w:r><w:rPr><w:color w:val="cccccc"/></w:rPr><w:t>${'─'.repeat(50)}</w:t></w:r></w:p>` : '';
+    return hdr + lines + sep;
+  }).join('');
+
+  const titleEsc = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1a5c8a"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>${titleEsc}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:color w:val="64748b"/><w:sz w:val="18"/></w:rPr><w:t>ถอดข้อความโดย CoopLex OCR (Claude AI)</w:t></w:r></w:p><w:p/>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800"/></w:sectPr></w:body></w:document>`;
+
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file('word/document.xml', docXml);
+  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
+  return zip.generateAsync({ type: 'blob' });
+}
+
+function triggerDL(blob, name) {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// init — เลือก DPI 200 ไว้แล้ว
+document.querySelector('#dpiGroup .rbtn:nth-child(2)').classList.add('active-gr');
+</script>
+</body>
+</html>
