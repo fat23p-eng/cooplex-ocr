@@ -3,485 +3,963 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CoopLex OCR — แปลง PDF สแกน → Word</title>
+<title>CoopLex AI — ระบบตรวจกฎหมายสหกรณ์</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#070c18;--sf:#0f1929;--sf2:#162236;--sf3:#1c2d47;
-  --bd:#1e3254;--ac:#2196f3;--ac2:#42a5f5;
-  --go:#f59e0b;--gr:#10b981;--re:#ef4444;--pu:#a78bfa;
-  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#4a6080;
+  --navy:#0d2744;--navy2:#163660;--navy3:#1e4d8c;--navyl:#e8eef6;--navyll:#f2f6fb;
+  --amber:#d97706;--amber2:#f59e0b;--amber3:#fbbf24;--amberl:#fffbeb;--amberll:#fef3c7;
+  --orange:#c2410c;--orange2:#ea580c;--orangel:#fff7ed;--orangell:#ffedd5;
+  --brown:#92400e;--brownl:#fef3c7;
+  --cream:#fdf8f0;--cream2:#faf4ea;--cream3:#f5ede0;
+  --bd:#ddd0b8;--bd2:#c9b898;
+  --gr:#15803d;--gr2:#16a34a;--grl:#f0fdf4;
+  --re:#b91c1c;--re2:#dc2626;--rel:#fef2f2;
+  --pu:#6d28d9;--pul:#f5f3ff;
+  --tx:#1a0e00;--tx2:#5a3e1a;--tx3:#9a7840;
+  --sh:0 2px 8px rgba(13,39,68,.07),0 6px 20px rgba(13,39,68,.05);
+  --sh2:0 6px 24px rgba(13,39,68,.12),0 16px 48px rgba(13,39,68,.08);
+  --r:12px;--r2:16px;--r3:22px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Sarabun','Noto Sans Thai',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(33,150,243,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(33,150,243,.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;}
+html{scroll-behavior:smooth;}
+body{font-family:'Sarabun','Noto Sans Thai',sans-serif;background:var(--cream);color:var(--tx);min-height:100vh;overflow-x:hidden;}
 
-/* HEADER */
-header{position:sticky;top:0;z-index:100;padding:0 20px;border-bottom:1px solid var(--bd);background:rgba(7,12,24,.96);backdrop-filter:blur(20px);display:flex;align-items:center;height:56px;gap:10px;}
-.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--ac),var(--go));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 18px rgba(33,150,243,.35);}
-.logo-text{font-size:17px;font-weight:700;background:linear-gradient(135deg,#fff,var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.logo-sub{font-size:10px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;-webkit-text-fill-color:var(--tx3);}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--gr);box-shadow:0 0 6px var(--gr);animation:blink 1.8s ease infinite;margin-left:auto;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* ═══ TOP BAR ═══ */
+.topbar{background:var(--navy);height:36px;display:flex;align-items:center;justify-content:center;gap:20px;font-size:11px;color:rgba(255,255,255,.65);font-family:'IBM Plex Mono',monospace;}
+.topbar span{color:var(--amber3);}
 
-/* WRAP */
-.wrap{max-width:760px;margin:0 auto;padding:28px 18px 80px;position:relative;z-index:1;}
+/* ═══ HEADER ═══ */
+header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70 100%);position:sticky;top:0;z-index:300;box-shadow:0 4px 20px rgba(13,39,68,.4);}
+.hinner{max-width:1100px;margin:0 auto;padding:0 28px;height:68px;display:flex;align-items:center;gap:16px;}
+.logo{display:flex;align-items:center;gap:13px;flex:1;}
+.lmark{width:44px;height:44px;background:linear-gradient(135deg,var(--amber2),var(--orange2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 14px rgba(217,119,6,.4);flex-shrink:0;position:relative;}
+.lmark::after{content:'';position:absolute;inset:-2px;border-radius:14px;border:1.5px solid rgba(251,191,36,.3);}
+.ltext{flex:1;}
+.lname{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.4px;line-height:1.1;}
+.lname span{color:var(--amber3);}
+.lsub{font-size:10px;color:rgba(255,255,255,.5);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;margin-top:1px;}
+.hright{display:flex;align-items:center;gap:10px;}
+.hbadge{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:5px 12px;border-radius:20px;font-weight:500;cursor:pointer;transition:all .2s;}
+.hb-amber{background:rgba(245,158,11,.15);color:var(--amber3);border:1px solid rgba(245,158,11,.3);}
+.hb-amber:hover{background:rgba(245,158,11,.25);}
+.ldot{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,.2);animation:pp 2s ease infinite;}
+@keyframes pp{0%,100%{box-shadow:0 0 0 3px rgba(74,222,128,.2)}50%{box-shadow:0 0 0 6px rgba(74,222,128,.05)}}
 
-/* CARDS */
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;margin-bottom:14px;overflow:hidden;}
-.card:nth-child(1){animation:fadeUp .4s ease both;}
-.card:nth-child(2){animation:fadeUp .4s ease .07s both;}
-.card:nth-child(3){animation:fadeUp .4s ease .14s both;}
-.card:nth-child(4){animation:fadeUp .4s ease .21s both;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.card-head{padding:12px 18px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
-.card-body{padding:16px 18px;}
+/* ═══ HERO BANNER (ใหญ่) ═══ */
+.hero-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 40%,var(--navy3) 70%,#1a4a8a 100%);padding:60px 28px 52px;position:relative;overflow:hidden;}
+.hero-banner::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+.hero-banner::after{content:'⚖️';position:absolute;right:5%;top:50%;transform:translateY(-50%);font-size:160px;opacity:.06;line-height:1;}
+.hb-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1;}
+.hb-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);border-radius:30px;padding:6px 16px;font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px;color:var(--amber3);}
+.hb-eyebrow::before{content:'●';font-size:8px;animation:pp 1.5s ease infinite;}
+.hero-banner h1{font-size:clamp(28px,4.5vw,52px);font-weight:800;line-height:1.15;margin-bottom:14px;color:#fff;letter-spacing:-.5px;}
+.hero-banner h1 .accent{color:var(--amber3);position:relative;}
+.hero-banner h1 .accent::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--amber3),transparent);border-radius:2px;}
+.hero-banner p{font-size:16px;color:rgba(255,255,255,.75);line-height:1.8;max-width:600px;margin-bottom:28px;}
+.hb-stats{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:32px;}
+.hb-stat{text-align:center;}
+.hb-stat-num{font-size:26px;font-weight:800;color:var(--amber3);line-height:1;}
+.hb-stat-lbl{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+.hb-cta{display:flex;gap:12px;flex-wrap:wrap;}
+.cta-main{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--amber2),var(--orange2));color:#fff;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:700;font-family:'Sarabun',sans-serif;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);transition:all .2s;}
+.cta-main:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(245,158,11,.5);}
+.cta-sec{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);color:#fff;padding:14px 24px;border-radius:12px;font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:all .2s;backdrop-filter:blur(4px);}
+.cta-sec:hover{background:rgba(255,255,255,.18);}
 
-/* INFO BOX */
-.info-box{padding:11px 14px;border-radius:9px;font-size:12px;line-height:1.75;margin-bottom:14px;}
-.ib-blue{background:rgba(33,150,243,.07);border:1px solid rgba(33,150,243,.2);color:var(--tx2);}
-.ib-gold{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:var(--tx2);}
-.ib-green{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);color:var(--tx2);}
+/* ═══ SUB BANNERS ═══ */
+.sub-banners{max-width:1100px;margin:0 auto;padding:28px 28px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.sb-card{border-radius:var(--r2);padding:22px 20px;position:relative;overflow:hidden;box-shadow:var(--sh);transition:all .2s;cursor:pointer;}
+.sb-card:hover{transform:translateY(-3px);box-shadow:var(--sh2);}
+.sb-card::before{content:'';position:absolute;inset:0;opacity:0;background:rgba(255,255,255,.05);transition:opacity .2s;}
+.sb-card:hover::before{opacity:1;}
+.sb1{background:linear-gradient(135deg,var(--navy2) 0%,var(--navy3) 100%);border:1px solid rgba(255,255,255,.1);}
+.sb2{background:linear-gradient(135deg,var(--orange) 0%,#d97706 100%);border:1px solid rgba(255,255,255,.1);}
+.sb3{background:linear-gradient(135deg,#1d4038 0%,#166534 100%);border:1px solid rgba(255,255,255,.1);}
+.sb-ico{font-size:32px;margin-bottom:10px;display:block;}
+.sb-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:5px;}
+.sb-desc{font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;}
+.sb-badge{display:inline-block;margin-top:10px;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:20px;font-weight:600;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2);}
+.sb-arrow{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:20px;opacity:.4;}
 
-/* INPUTS */
-.field{margin-bottom:12px;}
-.field:last-child{margin-bottom:0;}
-label.flabel{display:block;font-size:12px;color:var(--tx2);margin-bottom:5px;}
-input[type=text]{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:14px;font-family:'Sarabun',sans-serif;outline:none;transition:border-color .2s;width:100%;}
-input[type=text]:focus{border-color:var(--ac);}
+/* ═══ TAB SECTION ═══ */
+.tab-section{max-width:1100px;margin:0 auto;padding:28px 28px 0;}
+.tab-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:12px;}
+.tab-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--navy);border-radius:var(--r2);overflow:hidden;box-shadow:var(--sh2);border:3px solid var(--navy);}
+.tb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:18px 12px;cursor:pointer;border:none;background:transparent;transition:all .25s;font-family:'Sarabun',sans-serif;position:relative;border-right:1px solid rgba(255,255,255,.08);}
+.tb:last-child{border-right:none;}
+.tb-ico{font-size:26px;transition:transform .2s;}
+.tb-name{font-size:14px;font-weight:600;color:rgba(255,255,255,.6);transition:color .2s;line-height:1.2;}
+.tb-tag{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 9px;border-radius:20px;font-weight:700;transition:all .2s;margin-top:2px;}
+.tb-main-tag{background:rgba(245,158,11,.2);color:rgba(245,158,11,.8);border:1px solid rgba(245,158,11,.3);}
+.tb-sub-tag{background:rgba(249,115,22,.2);color:rgba(249,115,22,.8);border:1px solid rgba(249,115,22,.3);}
+.tb-ocr-tag{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.15);}
+.tb:hover .tb-name{color:rgba(255,255,255,.9);}
+.tb:hover .tb-ico{transform:scale(1.1);}
+.tb.act{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(234,88,12,.1));}
+.tb.act .tb-name{color:#fff;font-weight:700;}
+.tb.act .tb-ico{transform:scale(1.12);}
+.tb.act::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;background:linear-gradient(90deg,var(--amber2),var(--orange2));border-radius:3px 3px 0 0;}
+.tb.act .tb-main-tag{background:rgba(245,158,11,.3);color:var(--amber3);border-color:rgba(245,158,11,.5);}
+.tb.act .tb-sub-tag{background:rgba(249,115,22,.3);color:var(--orange2);border-color:rgba(249,115,22,.5);}
+.tb.act .tb-ocr-tag{background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);}
 
-/* RADIO */
-.rgroup{display:flex;gap:8px;flex-wrap:wrap;}
-.rbtn{padding:7px 14px;border-radius:8px;border:1px solid var(--bd);cursor:pointer;transition:all .2s;font-size:12px;user-select:none;color:var(--tx2);background:var(--sf2);}
-.rbtn:hover{border-color:var(--tx2);}
-.rbtn.active-gr{border-color:var(--gr);background:rgba(16,185,129,.1);color:var(--gr);}
-.rbtn.active-go{border-color:var(--go);background:rgba(245,158,11,.1);color:var(--go);}
-.rbtn.active-ac{border-color:var(--ac);background:rgba(33,150,243,.1);color:var(--ac);}
-.rbtn.active-pu{border-color:var(--pu);background:rgba(167,139,250,.1);color:var(--pu);}
+/* ═══ CONTENT ═══ */
+.content{max-width:1100px;margin:0 auto;padding:24px 28px 80px;}
+.panel{display:none;}
+.panel.show{display:block;animation:fu .3s ease both;}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/* DROP ZONE */
-.dropzone{border:2px dashed var(--bd);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
-.dropzone:hover,.dropzone.drag{border-color:var(--ac);background:rgba(33,150,243,.04);}
-.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
-.dz-icon{font-size:32px;margin-bottom:8px;}
-.dz-text{font-size:14px;color:var(--tx2);}
-.dz-sub{font-size:11px;color:var(--tx3);margin-top:4px;}
+/* ═══ CARDS ═══ */
+.card{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);margin-bottom:16px;overflow:hidden;box-shadow:var(--sh);}
+.card-head{padding:14px 20px;background:linear-gradient(135deg,var(--cream2),var(--cream3));border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--navy);}
+.chi{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.chi-nv{background:var(--navyl);}.chi-am{background:var(--amberll);}.chi-or{background:var(--orangell);}.chi-gr{background:var(--grl);}
+.card-body{padding:18px 20px;}
 
-/* FILE LIST */
-.flist{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
-.fitem{display:flex;align-items:center;gap:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;}
-.fi-name{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.fi-info{font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
-.fi-rm{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;transition:color .2s;padding:0 2px;}
-.fi-rm:hover{color:var(--re);}
-.cost-chip{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:6px;background:rgba(245,158,11,.1);color:var(--go);border:1px solid rgba(245,158,11,.2);margin-left:auto;}
+/* ═══ INSPECT TYPE ═══ */
+.itype-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.itp{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;border:1.5px solid var(--bd);cursor:pointer;transition:all .2s;background:#fff;color:var(--tx2);}
+.itp:hover{border-color:var(--navy2);color:var(--navy);background:var(--navyll);}
+.itp.on{border-color:var(--navy);background:var(--navyl);color:var(--navy);font-weight:700;box-shadow:0 0 0 3px rgba(13,39,68,.06);}
 
-/* PROGRESS */
-.prog-wrap{background:var(--sf3);border-radius:8px;overflow:hidden;height:7px;margin-bottom:8px;}
-.prog-bar{height:100%;background:linear-gradient(90deg,var(--ac),var(--gr));transition:width .4s ease;width:0%;}
-.prog-status{font-size:12px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;}
-.logbox{background:#050a14;border:1px solid var(--bd);border-radius:9px;padding:12px;height:150px;overflow-y:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.8;}
-.logbox .ok{color:var(--gr);}
-.logbox .err{color:var(--re);}
-.logbox .info{color:var(--ac);}
+/* ═══ UPLOAD ZONE ═══ */
+.upzone{border:2px dashed var(--bd2);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:all .25s;background:var(--cream2);position:relative;}
+.upzone:hover,.upzone.drag{border-color:var(--navy2);background:var(--navyll);}
+.upzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.uz-ico{font-size:40px;margin-bottom:10px;}
+.uz-t{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.uz-s{font-size:12px;color:var(--tx3);}
+.uz-btn{display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:10px 24px;background:var(--navy);color:#fff;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 3px 12px rgba(13,39,68,.25);}
 
-/* BUTTONS */
-.run-btn{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--ac),#0d7fd4);border:none;color:#fff;font-size:15px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(33,150,243,.3);margin-top:4px;}
-.run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(33,150,243,.4);}
-.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
-.sm-btn{padding:8px 16px;border-radius:8px;border:none;color:#fff;font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;}
-.sm-btn:hover{transform:translateY(-1px);}
+/* ═══ FILE ITEM ═══ */
+.fitem{display:flex;align-items:center;gap:10px;background:var(--cream2);border:1px solid var(--bd);border-radius:10px;padding:12px 15px;margin-top:10px;}
+.fi-ico{width:36px;height:36px;background:var(--navyl);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.fi-name{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx);}
+.fi-pg{font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.fi-pr{font-size:12px;font-weight:700;white-space:nowrap;padding:4px 10px;border-radius:7px;}
+.fp-fr{background:var(--grl);color:var(--gr);}
+.fp-pd{background:var(--amberll);color:var(--brown);}
+.fi-rm{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:16px;transition:color .2s;padding:2px;}.fi-rm:hover{color:var(--re);}
 
-/* RESULT */
-.result-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;margin-top:10px;overflow:hidden;animation:fadeUp .4s ease both;}
-.rc-head{padding:12px 16px;background:var(--sf2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.rc-preview{padding:14px 16px;font-size:13px;line-height:1.9;color:var(--tx2);max-height:250px;overflow-y:auto;white-space:pre-wrap;font-family:'Sarabun',sans-serif;border-bottom:1px solid var(--bd);}
-.rc-foot{padding:10px 16px;background:var(--sf2);display:flex;gap:8px;flex-wrap:wrap;}
+/* ═══ RUN BTN ═══ */
+.run-btn{width:100%;padding:16px;border-radius:var(--r);border:none;color:#fff;font-size:16px;font-weight:800;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:16px;letter-spacing:.3px;}
+.run-btn:hover{transform:translateY(-2px);}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.rb-nv{background:linear-gradient(135deg,var(--navy),var(--navy3));box-shadow:0 5px 18px rgba(13,39,68,.4);}
+.rb-or{background:linear-gradient(135deg,var(--orange2),var(--amber));box-shadow:0 5px 18px rgba(234,88,12,.4);}
+.rb-gr{background:linear-gradient(135deg,var(--gr2),#166534);box-shadow:0 5px 18px rgba(22,163,74,.4);}
+
+/* ═══ RESULT ═══ */
+.score-card{background:linear-gradient(135deg,var(--navyl),var(--amberll));border:1px solid var(--bd);border-radius:var(--r2);padding:24px;margin-bottom:16px;display:flex;align-items:center;gap:22px;box-shadow:var(--sh);}
+.sc-ring{width:82px;height:82px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;border:3px solid;box-shadow:var(--sh);}
+.sr-g{border-color:var(--gr2);color:var(--gr);background:var(--grl);}
+.sr-y{border-color:var(--amber);color:var(--amber);background:var(--amberl);}
+.sr-r{border-color:var(--re2);color:var(--re);background:var(--rel);}
+.sr-n{font-size:26px;line-height:1;}.sr-m{font-size:10px;color:var(--tx3);}
+.sc-info h2{font-size:18px;font-weight:800;margin-bottom:6px;color:var(--navy);}
+.sc-info p{font-size:13px;color:var(--tx2);line-height:1.7;}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.rgc{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:16px;box-shadow:var(--sh);}
+.rgc-ok{border-top:3px solid var(--gr2);}
+.rgc-er{border-top:3px solid var(--re2);}
+.rgc-wn{border-top:3px solid var(--amber2);}
+.rgc-tp{border-top:3px solid var(--pu);}
+.rgc-h{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.rgc-its{display:flex;flex-direction:column;gap:7px;}
+.rgc-it{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.55;color:var(--tx2);}
+.rgc-d{flex-shrink:0;margin-top:2px;font-size:13px;}
+.exp-card{background:linear-gradient(135deg,var(--navyl),var(--amberll));border:1px solid var(--bd);border-radius:var(--r2);padding:22px;margin-bottom:16px;box-shadow:var(--sh);}
+.exp-h{font-size:15px;font-weight:800;margin-bottom:11px;color:var(--navy);display:flex;align-items:center;gap:8px;}
+.exp-b{font-size:13px;line-height:1.9;color:var(--tx2);}
+.dl-btn{width:100%;padding:14px;border-radius:var(--r);background:#fff;border:2px solid var(--navy);color:var(--navy);font-size:14px;font-weight:700;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:var(--sh);}
+.dl-btn:hover{background:var(--navyl);transform:translateY(-1px);box-shadow:var(--sh2);}
+
+/* ═══ SEARCH ═══ */
+.srch-hero{background:linear-gradient(135deg,var(--amberll),var(--orangell));border:1px solid var(--bd);border-radius:var(--r2);padding:26px 28px 22px;margin-bottom:20px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.srch-hero::after{content:'📚';position:absolute;right:20px;bottom:-10px;font-size:80px;opacity:.08;}
+.sh-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(13,39,68,.08);color:var(--navy);border:1px solid rgba(13,39,68,.12);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:11px;}
+.srch-hero h2{font-size:clamp(17px,2.8vw,24px);font-weight:800;color:var(--navy);margin-bottom:6px;}
+.srch-hero p{font-size:13px;color:var(--tx2);line-height:1.7;}
+.fpills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+.fp{padding:7px 15px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);cursor:pointer;transition:all .2s;background:#fff;color:var(--tx2);}
+.fp.on,.fp:hover{border-color:var(--navy);background:var(--navyl);color:var(--navy);}
+.fp-or.on,.fp-or:hover{border-color:var(--orange2);background:var(--orangell);color:var(--orange);}
+.fp-am.on,.fp-am:hover{border-color:var(--amber);background:var(--amberll);color:var(--amber);}
+.sw{position:relative;margin-bottom:10px;}
+.si{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--tx3);font-size:18px;pointer-events:none;}
+.sb{width:100%;background:#fff;border:2px solid var(--bd);border-radius:var(--r);padding:14px 148px 14px 48px;font-size:15px;font-family:'Sarabun','Noto Sans Thai',sans-serif;color:var(--tx);outline:none;transition:all .3s;resize:none;min-height:54px;max-height:140px;box-shadow:var(--sh);}
+.sb:focus{border-color:var(--navy2);box-shadow:0 0 0 4px rgba(13,39,68,.08);}
+.sb::placeholder{color:var(--tx3);}
+.sndbtn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,var(--navy),var(--navy3));border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 3px 10px rgba(13,39,68,.3);}
+.sndbtn:hover{transform:translateY(calc(-50% - 1px));box-shadow:0 5px 14px rgba(13,39,68,.4);}
+.sndbtn:disabled{opacity:.45;cursor:not-allowed;}
+.hints{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--tx3);margin-bottom:2px;}
+.hint{cursor:pointer;transition:color .2s;}.hint:hover{color:var(--navy);}.hint::before{content:'↑ ';}
+.aw{margin-top:18px;animation:fu .35s ease both;}
+.acard{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden;box-shadow:var(--sh2);}
+.acard-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--bd);background:linear-gradient(135deg,var(--navyl),var(--amberll));}
+.aav{width:34px;height:34px;background:linear-gradient(135deg,var(--navy),var(--amber2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.aname{font-size:13px;font-weight:700;color:var(--navy);}
+.atime{font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;}
+.abadge{margin-left:auto;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:20px;font-weight:600;background:var(--navyl);color:var(--navy);border:1px solid rgba(13,39,68,.15);}
+.abody{padding:20px 20px 16px;font-size:14px;line-height:1.9;color:var(--tx);}
+.abody h3{font-size:14px;font-weight:700;color:var(--navy);margin:14px 0 6px;}.abody h3:first-child{margin-top:0;}
+.abody p{margin-bottom:8px;}.abody ul{margin:6px 0 8px 20px;}.abody li{margin-bottom:5px;}
+.abody strong{color:var(--brown);}
+.ltag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:5px;margin:1px 2px;font-family:'IBM Plex Mono',monospace;font-weight:600;background:var(--navyl);color:var(--navy);border:1px solid rgba(13,39,68,.15);}
+.afoot{padding:11px 18px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:9px;background:var(--cream2);flex-wrap:wrap;}
+.anote{flex:1;font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;}
+.abtn{padding:6px 13px;border-radius:8px;border:1px solid var(--bd);background:#fff;color:var(--tx2);font-size:12px;cursor:pointer;transition:all .2s;font-family:'Sarabun',sans-serif;}
+.abtn:hover{border-color:var(--navy);color:var(--navy);background:var(--navyl);}
+.sl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:12px;}
+.qg{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+.qcard{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:15px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--sh);}
+.qcard:hover{border-color:var(--navy2);transform:translateY(-2px);box-shadow:var(--sh2);background:var(--navyll);}
+.qi{font-size:22px;flex-shrink:0;margin-top:1px;}
+.qt{font-size:13px;font-weight:700;margin-bottom:3px;color:var(--navy);}
+.qd{font-size:11px;color:var(--tx3);line-height:1.5;}
+
+/* ═══ OCR ═══ */
+.ocr-hero{background:linear-gradient(135deg,#1c3a2a 0%,#166534 100%);border-radius:var(--r2);padding:28px 26px;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:var(--sh2);}
+.ocr-hero::after{content:'📄';position:absolute;right:18px;bottom:-8px;font-size:80px;opacity:.08;}
+.ocr-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.25);border-radius:20px;padding:4px 13px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:11px;}
+.ocr-hero h3{font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;}
+.ocr-hero p{font-size:13px;color:rgba(255,255,255,.75);line-height:1.75;}
+.rb2{padding:8px 16px;border-radius:10px;border:1.5px solid var(--bd);cursor:pointer;transition:all .2s;font-size:12px;user-select:none;color:var(--tx2);background:#fff;}
+.rb2:hover{border-color:var(--navy2);}
+.rb2.ong{border-color:var(--gr2);background:var(--grl);color:var(--gr);}
+.rb2.ogo{border-color:var(--amber);background:var(--amberll);color:var(--amber);}
+.rb2.oac{border-color:var(--navy);background:var(--navyl);color:var(--navy);}
+.rb2.opu{border-color:var(--pu);background:var(--pul);color:var(--pu);}
+.prg-wrap{background:var(--cream3);border-radius:8px;overflow:hidden;height:7px;margin-bottom:8px;}
+.prg-bar{height:100%;background:linear-gradient(90deg,var(--navy),var(--amber2));transition:width .4s ease;width:0%;}
+.prg-st{font-size:12px;color:var(--tx3);font-family:'IBM Plex Mono',monospace;}
+.logbox{background:var(--navy);border-radius:11px;padding:14px;height:140px;overflow-y:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);margin-top:10px;line-height:1.9;}
+.logbox .ok{color:#4ade80;}.logbox .err{color:#f87171;}.logbox .info{color:var(--amber3);}
+.rcrd{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);margin-top:12px;overflow:hidden;box-shadow:var(--sh2);animation:fu .4s ease both;}
+.rcrh{padding:13px 18px;background:linear-gradient(135deg,var(--cream2),var(--cream3));border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rcrp{padding:14px 18px;font-size:13px;line-height:1.9;color:var(--tx2);max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Sarabun',sans-serif;border-bottom:1px solid var(--bd);}
+.rcrf{padding:11px 18px;background:var(--cream2);display:flex;gap:8px;flex-wrap:wrap;}
+.smb{padding:9px 17px;border-radius:10px;border:none;color:#fff;font-size:12px;font-weight:700;font-family:'Sarabun',sans-serif;cursor:pointer;transition:all .2s;}
+.smb:hover{transform:translateY(-1px);}
+
+/* ═══ PRICING ═══ */
+.pr-sect{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden;margin-top:24px;box-shadow:var(--sh);}
+.pr-head{padding:16px 22px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);display:flex;align-items:center;justify-content:space-between;}
+.pr-title{font-size:15px;font-weight:800;color:#fff;}
+.pr-yr{font-size:11px;color:rgba(255,255,255,.5);font-family:'IBM Plex Mono',monospace;}
+.pr-grid{display:grid;grid-template-columns:repeat(3,1fr);}
+.pr-col{padding:18px 20px;border-right:1px solid var(--bd);}.pr-col:last-child{border-right:none;}
+.pr-ct{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+.pr-rows{display:flex;flex-direction:column;gap:8px;}
+.pr-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.pr-rng{color:var(--tx2);}.pr-p{font-weight:700;font-family:'IBM Plex Mono',monospace;}
+.pp-fr{color:var(--gr);}.pp-pd{color:var(--orange2);}
+
+/* ═══ MODAL ═══ */
+.mbg{position:fixed;inset:0;background:rgba(13,39,68,.6);backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;animation:mfi .2s ease both;}
+@keyframes mfi{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border:1px solid var(--bd);border-radius:var(--r3);padding:32px;max-width:400px;width:100%;position:relative;box-shadow:var(--sh2);animation:msu .3s ease both;}
+@keyframes msu{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.modal h2{font-size:20px;font-weight:800;margin-bottom:7px;color:var(--navy);}
+.modal p{font-size:13px;color:var(--tx2);line-height:1.7;margin-bottom:22px;}
+.ppbox{background:linear-gradient(135deg,var(--navyl),var(--amberll));border:1px solid var(--bd);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:22px;}
+.pplbl{font-size:11px;color:var(--tx3);margin-bottom:7px;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
+.ppnum{font-size:22px;font-weight:800;color:var(--navy);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;}
+.ppname{font-size:13px;color:var(--tx2);margin-top:5px;}
+.ppamt{font-size:30px;font-weight:800;color:var(--amber);margin-top:12px;}
+.ppnote{font-size:11px;color:var(--tx3);margin-top:5px;}
+.mbtns{display:flex;gap:10px;}
+.mbconf{flex:1;padding:14px;border-radius:var(--r);background:linear-gradient(135deg,var(--navy),var(--navy3));border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'Sarabun',sans-serif;transition:all .2s;box-shadow:0 4px 14px rgba(13,39,68,.3);}
+.mbconf:hover{transform:translateY(-1px);}
+.mbcancel{padding:14px 18px;border-radius:var(--r);border:2px solid var(--bd);background:transparent;color:var(--tx2);font-size:14px;cursor:pointer;font-family:'Sarabun',sans-serif;transition:all .2s;}
+.mbcancel:hover{border-color:var(--navy);color:var(--navy);}
+.mclose{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--tx3);font-size:22px;cursor:pointer;border-radius:7px;padding:2px 7px;transition:all .2s;}
+.mclose:hover{background:var(--cream2);}
+
+/* LOADING */
+.ldwrap{display:flex;gap:5px;align-items:center;padding:22px;}
+.dot{width:9px;height:9px;background:var(--navy);border-radius:50%;animation:boun 1.2s ease infinite;}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes boun{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-8px);opacity:1}}
+.ltxt{font-size:13px;color:var(--tx3);margin-left:5px;}
+
+/* DISC */
+.disc{margin-top:24px;padding:14px 18px;background:#fff;border:1px solid var(--bd);border-radius:var(--r);font-size:12px;color:var(--tx3);line-height:1.8;box-shadow:var(--sh);}
+.disc strong{color:var(--amber);}
 
 /* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sf2);border:1px solid var(--bd);border-radius:30px;padding:10px 20px;font-size:13px;z-index:999;color:var(--tx);box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toastIn .3s ease both;}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:30px;padding:11px 24px;font-size:13px;font-weight:600;z-index:600;box-shadow:0 8px 28px rgba(13,39,68,.35);animation:ti .3s ease both;}
+@keyframes ti{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
-@media(max-width:600px){.wrap{padding:16px 12px 60px;}}
+@media(max-width:700px){
+  .sub-banners{grid-template-columns:1fr;}.tab-section,.hinner,.content{padding-left:16px;padding-right:16px;}
+  .hero-banner{padding:40px 16px 36px;}.hb-stats{gap:16px;}
+  .rg{grid-template-columns:1fr;}.pr-grid{grid-template-columns:1fr;}
+  .pr-col{border-right:none;border-bottom:1px solid var(--bd);}.pr-col:last-child{border-bottom:none;}
+  .tb-name{font-size:12px;}
+}
 </style>
 </head>
 <body>
 
+<!-- TOP BAR -->
+<div class="topbar">
+  <span>⚖️ CoopLex AI</span>
+  <span style="opacity:.4">|</span>
+  <span>ระบบตรวจกฎหมายสหกรณ์อัจฉริยะ</span>
+  <span style="opacity:.4">|</span>
+  <span>📞 081-570-1313</span>
+  <span style="opacity:.4">|</span>
+  <span>💬 Line: fat23p</span>
+</div>
+
+<!-- HEADER -->
 <header>
-  <div class="logo-icon">📄</div>
-  <div>
-    <div class="logo-text">CoopLex OCR</div>
-    <div class="logo-sub">PDF SCAN → WORD</div>
+  <div class="hinner">
+    <div class="logo">
+      <div class="lmark">⚖️</div>
+      <div class="ltext">
+        <div class="lname">Coop<span>Lex</span> AI</div>
+        <div class="lsub">COOPERATIVE LAW INTELLIGENCE SYSTEM</div>
+      </div>
+    </div>
+    <div class="hright">
+      <span class="hbadge" id="roleBadge" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2);cursor:default;">👤 Guest</span>
+      <span class="hbadge hb-amber" style="cursor:default;">💬 <span id="qNum">5</span> ครั้ง/วัน</span>
+      <button class="hbadge" id="loginBtn" onclick="showLoginModal()" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:'Sarabun',sans-serif;">🔐 เข้าสู่ระบบ</button>
+      <div class="ldot"></div>
+    </div>
   </div>
-  <div class="live-dot"></div>
 </header>
 
-<div class="wrap">
+<!-- HERO BANNER ใหญ่ -->
+<div class="hero-banner">
+  <div class="hb-inner">
+    <div class="hb-eyebrow">🤖 AI LEGAL SYSTEM v2025</div>
+    <h1>ระบบตรวจ<span class="accent">กฎหมายสหกรณ์</span><br>อัจฉริยะด้วย AI</h1>
+    <p>วิเคราะห์ข้อบังคับ ระเบียบ ค้นหากฎหมาย และแปลงเอกสาร PDF สแกน<br>อ้างอิง พ.ร.บ.สหกรณ์ พ.ศ.2542 | กฎกระทรวง | ระเบียบนายทะเบียนสหกรณ์</p>
+    <div class="hb-stats">
+      <div class="hb-stat"><div class="hb-stat-num">150+</div><div class="hb-stat-lbl">มาตรา พ.ร.บ.</div></div>
+      <div class="hb-stat"><div class="hb-stat-num">80+</div><div class="hb-stat-lbl">กฎกระทรวง</div></div>
+      <div class="hb-stat"><div class="hb-stat-num">200+</div><div class="hb-stat-lbl">ระเบียบนายทะเบียน</div></div>
+      <div class="hb-stat"><div class="hb-stat-num">99%</div><div class="hb-stat-lbl">ความแม่นยำ OCR</div></div>
+    </div>
+    <div class="hb-cta">
+      <button class="cta-main" onclick="scrollToTabs()">🔎 เริ่มตรวจเอกสาร</button>
+      <button class="cta-sec" onclick="switchTab('search',document.querySelectorAll('.tb')[1])">🔍 ค้นหากฎหมาย</button>
+    </div>
+  </div>
+</div>
 
-  <!-- STEP 1: INFO -->
+<!-- SUB BANNERS -->
+<div class="sub-banners">
+  <div class="sb-card sb1" onclick="switchTab('inspect',document.querySelectorAll('.tb')[0]);scrollToTabs()">
+    <div class="sb-arrow">→</div>
+    <span class="sb-ico">🔎</span>
+    <div class="sb-title">ตรวจข้อบังคับ/ระเบียบ</div>
+    <div class="sb-desc">วิเคราะห์ 4 มิติ ครบถ้วน ข้อขัดแย้ง จุดเสี่ยง คำแนะนำ</div>
+    <span class="sb-badge">⭐ บริการหลัก</span>
+  </div>
+  <div class="sb-card sb2" onclick="switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs()">
+    <div class="sb-arrow">→</div>
+    <span class="sb-ico">🔍</span>
+    <div class="sb-title">ค้นหากฎหมาย</div>
+    <div class="sb-desc">พ.ร.บ. กฎกระทรวง ระเบียบนายทะเบียน ตอบทันที</div>
+    <span class="sb-badge">ฟรี 5 ครั้ง/วัน</span>
+  </div>
+  <div class="sb-card sb3" onclick="switchTab('ocr',document.querySelectorAll('.tb')[2]);scrollToTabs()">
+    <div class="sb-arrow">→</div>
+    <span class="sb-ico">📄</span>
+    <div class="sb-title">แปลง PDF สแกน → Word</div>
+    <div class="sb-desc">Claude AI อ่านรูปภาพ แม่นยำ 95%+ ราชกิจจาทุกประเภท</div>
+    <span class="sb-badge">OCR อัจฉริยะ</span>
+  </div>
+</div>
+
+<!-- TAB SECTION -->
+<div class="tab-section" id="tabSection">
+  <div class="tab-label">เลือกบริการที่ต้องการ</div>
+  <div class="tab-nav">
+    <button class="tb act" onclick="switchTab('inspect',this)">
+      <span class="tb-ico">🔎</span>
+      <span class="tb-name">ตรวจข้อบังคับ/ระเบียบ</span>
+      <span class="tb-tag tb-main-tag">⭐ หลัก</span>
+    </button>
+    <button class="tb" onclick="switchTab('search',this)">
+      <span class="tb-ico">🔍</span>
+      <span class="tb-name">ค้นหากฎหมาย</span>
+      <span class="tb-tag tb-sub-tag">รอง</span>
+    </button>
+    <button class="tb" onclick="switchTab('ocr',this)">
+      <span class="tb-ico">📄</span>
+      <span class="tb-name">แปลง PDF สแกน</span>
+      <span class="tb-tag tb-ocr-tag">OCR</span>
+    </button>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- TAB 1: ตรวจข้อบังคับ/ระเบียบ -->
+<div class="panel show" id="panel-inspect">
   <div class="card">
-    <div class="card-head">ℹ️ วิธีใช้งาน</div>
+    <div class="card-head"><div class="chi chi-nv">📋</div>ประเภทเอกสารที่ต้องการตรวจ</div>
     <div class="card-body">
-      <div class="info-box ib-green">
-        ✅ ระบบพร้อมใช้งาน — Claude API Key ถูกเก็บไว้ใน Server อย่างปลอดภัย<br>
-        📄 รองรับ PDF สแกน, PDF ฟอนต์พิเศษ, PDF ราชกิจจา ทุกประเภท<br>
-        💰 ค่าใช้จ่าย ~฿0.50-1.00 ต่อหน้า (หักจาก Claude API ของเจ้าของระบบ)
-      </div>
-      <div class="info-box ib-gold" style="margin-bottom:0">
-        ⚠️ ไฟล์ PDF ที่แนบจะถูกส่งให้ Claude อ่านชั่วคราวเท่านั้น ไม่มีการเก็บข้อมูลในระบบ
+      <div class="itype-pills" id="itg">
+        <div class="itp on" onclick="sit('bylaw',this)">📜 ข้อบังคับสหกรณ์</div>
+        <div class="itp" onclick="sit('reg',this)">📋 ระเบียบสหกรณ์</div>
+        <div class="itp" onclick="sit('notice',this)">📌 คำสั่ง / ประกาศ</div>
       </div>
     </div>
   </div>
-
-  <!-- STEP 2: SETTINGS -->
-  <div class="card">
-    <div class="card-head">⚙️ ตั้งค่า</div>
-    <div class="card-body">
-      <div class="field">
-        <label class="flabel">ความละเอียด (DPI) — ยิ่งสูงยิ่งแม่นยำแต่ช้ากว่า</label>
-        <div class="rgroup" id="dpiGroup">
-          <div class="rbtn active-go" onclick="setDPI(150,this)">150 — เร็ว/ประหยัด</div>
-          <div class="rbtn active-gr" onclick="setDPI(200,this)">200 — แนะนำ ✅</div>
-          <div class="rbtn active-pu" onclick="setDPI(300,this)">300 — แม่นยำสูง</div>
-        </div>
-      </div>
-      <div class="field" style="margin-top:12px;">
-        <label class="flabel">รูปแบบผลลัพธ์</label>
-        <div class="rgroup" id="fmtGroup">
-          <div class="rbtn active-ac" onclick="setFmt('docx',this)">📝 Word (.docx) แนะนำ</div>
-          <div class="rbtn" onclick="setFmt('txt',this)">📄 Text (.txt)</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STEP 3: FILES -->
   <div class="card">
     <div class="card-head">
-      📂 เลือกไฟล์ PDF
-      <span class="cost-chip" id="costChip">0 หน้า / ฿0</span>
+      <div class="chi chi-am">📂</div>แนบเอกสารที่ต้องการตรวจ
+      <span id="icc" style="margin-left:auto;font-size:12px;font-weight:700;color:var(--orange2);font-family:'IBM Plex Mono',monospace;"></span>
     </div>
     <div class="card-body">
-      <div class="dropzone" id="dz"
-        ondragover="dov(event)" ondragleave="dlv(event)" ondrop="ddr(event)">
-        <input type="file" id="fileIn" accept=".pdf" multiple onchange="addFiles(this.files)">
-        <div class="dz-icon">📋</div>
-        <div class="dz-text">คลิกหรือลากไฟล์ PDF มาวางที่นี่</div>
-        <div class="dz-sub">รองรับหลายไฟล์ • PDF สแกน / ฟอนต์พิเศษ / ราชกิจจา</div>
+      <div class="upzone" id="idz" ondragover="dov(event,'idz')" ondragleave="dlv(event,'idz')" ondrop="ddi(event)">
+        <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="hif(this.files)">
+        <div class="uz-ico">📋</div>
+        <div class="uz-t">คลิกหรือลากไฟล์มาวางที่นี่</div>
+        <div class="uz-s">รองรับ PDF, Word (.docx), Text (.txt)</div>
+        <div class="uz-btn">📂 เลือกไฟล์</div>
       </div>
-      <div class="flist" id="flist"></div>
+      <div id="ifi"></div>
     </div>
   </div>
+  <button class="run-btn rb-nv" id="ibtn" onclick="doInspect()">🔍 เริ่มตรวจเอกสาร</button>
+  <div id="ires"></div>
+  <div style="margin-top:28px">
+    <div class="sl">เอกสารที่ระบบตรวจได้</div>
+    <div class="qg">
+      <div class="qcard"><div class="qi">📜</div><div><div class="qt">ข้อบังคับสหกรณ์</div><div class="qd">ฉบับจดทะเบียน, ฉบับแก้ไข</div></div></div>
+      <div class="qcard"><div class="qi">📋</div><div><div class="qt">ระเบียบเงินกู้</div><div class="qd">สามัญ, ฉุกเฉิน, พิเศษ</div></div></div>
+      <div class="qcard"><div class="qi">📋</div><div><div class="qt">ระเบียบเงินฝาก</div><div class="qd">ออมทรัพย์, ประจำ</div></div></div>
+      <div class="qcard"><div class="qi">📌</div><div><div class="qt">ระเบียบการประชุม</div><div class="qd">คณะกรรมการ, ใหญ่สามัญ</div></div></div>
+      <div class="qcard"><div class="qi">📌</div><div><div class="qt">ระเบียบสวัสดิการ</div><div class="qd">สงเคราะห์, ทุนการศึกษา</div></div></div>
+      <div class="qcard"><div class="qi">📄</div><div><div class="qt">ประกาศ / คำสั่ง</div><div class="qd">อัตราดอกเบี้ย, หลักเกณฑ์</div></div></div>
+    </div>
+  </div>
+  <div class="pr-sect">
+    <div class="pr-head"><div class="pr-title">💰 อัตราค่าบริการ</div><span class="pr-yr">ปีแรก</span></div>
+    <div class="pr-grid">
+      <div class="pr-col"><div class="pr-ct">🔎 ตรวจเอกสาร</div><div class="pr-rows"><div class="pr-row"><span class="pr-rng">1–2 หน้า</span><span class="pr-p pp-fr">ฟรี</span></div><div class="pr-row"><span class="pr-rng">3–10 หน้า</span><span class="pr-p pp-pd">฿99</span></div><div class="pr-row"><span class="pr-rng">11–50 หน้า</span><span class="pr-p pp-pd">฿199</span></div></div></div>
+      <div class="pr-col"><div class="pr-ct">🔍 ถามกฎหมาย</div><div class="pr-rows"><div class="pr-row"><span class="pr-rng">1–5 ครั้ง/วัน</span><span class="pr-p pp-fr">ฟรี</span></div><div class="pr-row"><span class="pr-rng">6–20 ครั้ง</span><span class="pr-p pp-pd">฿20</span></div><div class="pr-row"><span class="pr-rng">21–100 ครั้ง</span><span class="pr-p pp-pd">฿50</span></div></div></div>
+      <div class="pr-col"><div class="pr-ct">📄 OCR PDF สแกน</div><div class="pr-rows"><div class="pr-row"><span class="pr-rng">1–2 หน้า</span><span class="pr-p pp-fr">ฟรี</span></div><div class="pr-row"><span class="pr-rng">3–10 หน้า</span><span class="pr-p pp-pd">฿20–50</span></div><div class="pr-row"><span class="pr-rng">11–50 หน้า</span><span class="pr-p pp-pd">฿99–199</span></div></div></div>
+    </div>
+  </div>
+  <div class="disc"><strong>⚠️ หมายเหตุ:</strong> ข้อมูลที่ AI ให้เป็นเพียงการอ้างอิงเบื้องต้น กรุณาตรวจสอบกับผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ก่อนนำไปใช้งานจริง อ้างอิง: พ.ร.บ.สหกรณ์ พ.ศ.2542 | กฎกระทรวง กสส. | ระเบียบนายทะเบียนสหกรณ์</div>
+</div>
 
-  <!-- STEP 4: RUN -->
+<!-- TAB 2: ค้นหากฎหมาย -->
+<div class="panel" id="panel-search">
+  <div class="srch-hero">
+    <div class="sh-tag">🔍 ค้นหากฎหมาย</div>
+    <h2>ถามเรื่อง พ.ร.บ. กฎกระทรวง ระเบียบนายทะเบียน</h2>
+    <p>ค้นหาข้อมูลกฎหมายสหกรณ์ด้วย AI • อ้างอิงมาตราและข้อกฎหมายชัดเจน</p>
+  </div>
   <div class="card">
-    <div class="card-head">🤖 แปลงด้วย Claude AI</div>
+    <div class="card-head"><div class="chi chi-nv">🔍</div>ค้นหากฎหมายสหกรณ์</div>
     <div class="card-body">
-      <button class="run-btn" id="runBtn" onclick="startOCR()">
-        🤖 เริ่มแปลง PDF → Word
-      </button>
-      <div id="progSec" style="display:none;margin-top:14px;">
-        <div class="prog-wrap"><div class="prog-bar" id="progBar"></div></div>
-        <div class="prog-status" id="progStatus">กำลังเริ่ม...</div>
-        <div class="logbox" id="logBox"></div>
+      <div class="fpills">
+        <span class="fp on" onclick="sf2('all',this)">ทั้งหมด</span>
+        <span class="fp" onclick="sf2('law',this)">📜 พ.ร.บ.สหกรณ์</span>
+        <span class="fp fp-or" onclick="sf2('reg',this)">📋 กฎกระทรวง</span>
+        <span class="fp fp-am" onclick="sf2('notice',this)">📌 ระเบียบนายทะเบียน</span>
+      </div>
+      <div class="sw">
+        <span class="si">🔍</span>
+        <textarea class="sb" id="askIn" placeholder="พิมพ์คำถาม เช่น การจดทะเบียนสหกรณ์ใหม่ต้องทำอย่างไร?" rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
+        <button class="sndbtn" id="askBtn" onclick="doAsk()">🤖 ถาม AI</button>
+      </div>
+      <div class="hints">
+        <span class="hint" onclick="fq('การจดทะเบียนสหกรณ์ใหม่')">จดทะเบียนสหกรณ์</span>
+        <span class="hint" onclick="fq('สิทธิของสมาชิกสหกรณ์')">สิทธิสมาชิก</span>
+        <span class="hint" onclick="fq('การแบ่งกำไรสุทธิประจำปีของสหกรณ์')">แบ่งกำไรสุทธิ</span>
+        <span class="hint" onclick="fq('กรรมการสหกรณ์มีหน้าที่อะไรบ้าง')">หน้าที่กรรมการ</span>
+        <span class="hint" onclick="fq('ทุนสำรองของสหกรณ์')">ทุนสำรอง</span>
       </div>
     </div>
   </div>
+  <div id="askRes"></div>
+  <div style="margin-top:24px">
+    <div class="sl">หัวข้อที่ถามบ่อย</div>
+    <div class="qg">
+      <div class="qcard" onclick="fq('การจดทะเบียนสหกรณ์ใหม่')"><div class="qi">📝</div><div><div class="qt">จดทะเบียนสหกรณ์</div><div class="qd">ขั้นตอน, เอกสาร, เงื่อนไข</div></div></div>
+      <div class="qcard" onclick="fq('อำนาจนายทะเบียนสหกรณ์ตาม พ.ร.บ.')"><div class="qi">👤</div><div><div class="qt">อำนาจนายทะเบียน</div><div class="qd">ตรวจสอบ, สั่งการ, เพิกถอน</div></div></div>
+      <div class="qcard" onclick="fq('การแก้ไขข้อบังคับสหกรณ์')"><div class="qi">✏️</div><div><div class="qt">แก้ไขข้อบังคับ</div><div class="qd">ขั้นตอน, มติ, จดทะเบียน</div></div></div>
+      <div class="qcard" onclick="fq('การเลิกสหกรณ์และการชำระบัญชี')"><div class="qi">🔚</div><div><div class="qt">เลิกสหกรณ์</div><div class="qd">เหตุผล, ขั้นตอน, ชำระบัญชี</div></div></div>
+      <div class="qcard" onclick="fq('อัตราเงินปันผลและเงินเฉลี่ยคืน')"><div class="qi">💰</div><div><div class="qt">เงินปันผล/เฉลี่ยคืน</div><div class="qd">อัตรา, หลักเกณฑ์, กฎกระทรวง</div></div></div>
+      <div class="qcard" onclick="fq('การตรวจสอบบัญชีสหกรณ์')"><div class="qi">📊</div><div><div class="qt">ตรวจสอบบัญชี</div><div class="qd">ผู้สอบบัญชี, หน้าที่, รายงาน</div></div></div>
+    </div>
+  </div>
+  <div class="disc"><strong>⚠️ หมายเหตุ:</strong> ข้อมูลที่ AI ให้เป็นเพียงการอ้างอิงเบื้องต้น กรุณาตรวจสอบกับผู้เชี่ยวชาญก่อนนำไปใช้งานจริง</div>
+</div>
 
-  <!-- RESULTS -->
-  <div id="results"></div>
+<!-- TAB 3: OCR -->
+<div class="panel" id="panel-ocr">
+  <div class="ocr-hero">
+    <div class="ocr-tag">📄 AI OCR ENGINE</div>
+    <h3>แปลง PDF สแกน → Word ด้วย Claude AI</h3>
+    <p>อ่านรูปภาพโดยตรง แม่นยำ 95%+ รองรับ PDF ราชกิจจา ฟอนต์พิเศษ เอกสารเก่า ทุกประเภท<br>ค่าใช้จ่าย ~฿0.50-1.00 ต่อหน้า คิดตามการใช้งานจริง</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="chi chi-gr">⚙️</div>ตั้งค่าการแปลง</div>
+    <div class="card-body">
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:7px;font-weight:600">ความละเอียด (DPI)</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="dg">
+          <div class="rb2 ogo" onclick="sdpi(150,this)">150 — เร็ว/ประหยัด</div>
+          <div class="rb2 ong" onclick="sdpi(200,this)">200 — แนะนำ ✅</div>
+          <div class="rb2 opu" onclick="sdpi(300,this)">300 — แม่นยำสูง</div>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:7px;font-weight:600">รูปแบบผลลัพธ์</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="fg">
+          <div class="rb2 oac" onclick="sfmt('docx',this)">📝 Word (.docx) แนะนำ</div>
+          <div class="rb2" onclick="sfmt('txt',this)">📄 Text (.txt)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <div class="chi chi-am">📂</div>เลือกไฟล์ PDF
+      <span id="ocost" style="margin-left:auto;font-size:12px;font-weight:700;color:var(--orange2);font-family:'IBM Plex Mono',monospace">0 หน้า / ฿0</span>
+    </div>
+    <div class="card-body">
+      <div class="upzone" id="odz" ondragover="dov(event,'odz')" ondragleave="dlv(event,'odz')" ondrop="ddo(event)">
+        <input type="file" accept=".pdf" multiple onchange="aof(this.files)">
+        <div class="uz-ico">📋</div>
+        <div class="uz-t">คลิกหรือลากไฟล์ PDF มาวาง</div>
+        <div class="uz-s">PDF สแกน • ฟอนต์พิเศษ • ราชกิจจานุเบกษา</div>
+        <div class="uz-btn">📂 เลือกไฟล์</div>
+      </div>
+      <div id="ofl"></div>
+    </div>
+  </div>
+  <button class="run-btn rb-gr" id="obtn" onclick="startOCR()">🤖 เริ่มแปลง PDF → Word</button>
+  <div id="ops" style="display:none;margin-top:-4px;margin-bottom:16px">
+    <div class="card"><div class="card-body">
+      <div class="prg-wrap"><div class="prg-bar" id="opb"></div></div>
+      <div class="prg-st" id="opst">กำลังเริ่ม...</div>
+      <div class="logbox" id="olbox"></div>
+    </div></div>
+  </div>
+  <div id="ores"></div>
+  <div class="disc"><strong>⚠️ หมายเหตุ:</strong> ควรตรวจสอบความถูกต้องของตัวเลขและมาตราก่อนนำไปใช้งานจริง</div>
+</div>
 
+</div><!-- /content -->
+
+<!-- FOOTER -->
+<footer style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);padding:32px 28px;margin-top:0;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:24px;">
+      <!-- Brand -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--amber2),var(--orange2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚖️</div>
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#fff;">Coop<span style="color:var(--amber3);">Lex</span> AI</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;">COOPERATIVE LAW SYSTEM</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.8;">ระบบตรวจกฎหมายสหกรณ์อัจฉริยะ<br>ขับเคลื่อนด้วย Claude AI<br>อ้างอิง พ.ร.บ.สหกรณ์ พ.ศ.2542</p>
+      </div>
+      <!-- บริการ -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--amber3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;font-family:'IBM Plex Mono',monospace;">บริการ</div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.65);">🔎 ตรวจข้อบังคับ/ระเบียบสหกรณ์</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.65);">🔍 ค้นหากฎหมาย พ.ร.บ. กฎกระทรวง</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.65);">📄 แปลง PDF สแกน → Word (OCR)</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.65);">💡 คำแนะนำด้านกฎหมายสหกรณ์</div>
+        </div>
+      </div>
+      <!-- ติดต่อ -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--amber3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;font-family:'IBM Plex Mono',monospace;">ติดต่อสอบถาม</div>
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <a href="tel:0815701313" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+            <span style="width:32px;height:32px;background:#25D366;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            </span>
+            <span style="font-size:13px;color:#fff;font-weight:600;">081-570-1313</span>
+          </a>
+          <a href="https://www.facebook.com/people/เรืองชัย-โพนพุฒ/100008xxxxxx" target="_blank" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+            <span style="width:32px;height:32px;background:#1877F2;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </span>
+            <span style="font-size:13px;color:rgba(255,255,255,.85);">เรืองชัย โพนพุฒ</span>
+          </a>
+          <a href="https://line.me/ti/p/fat23p" target="_blank" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+            <span style="width:32px;height:32px;background:#06C755;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+            </span>
+            <span style="font-size:13px;color:rgba(255,255,255,.85);">Line ID: <span style="color:var(--amber3);font-weight:700;">fat23p</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- Divider -->
+    <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:12px;color:rgba(255,255,255,.45);">
+        © 2025 CoopLex AI — Copyright by <span style="color:var(--amber3);font-weight:600;">Raungchai Phonput (เรืองชัย โพนพุฒ)</span> All rights reserved.
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,.3);font-family:'IBM Plex Mono',monospace;">
+        Powered by Claude AI (Anthropic)
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div class="mbg" id="loginModal" style="display:none">
+  <div class="modal" style="max-width:360px">
+    <button class="mclose" onclick="closeLoginModal()">✕</button>
+    <h2 style="margin-bottom:6px">🔐 เข้าสู่ระบบ</h2>
+    <p style="margin-bottom:20px">ใส่รหัสผ่านเพื่อเพิ่มโควต้าการใช้งาน</p>
+    <div style="background:linear-gradient(135deg,var(--navyl),var(--amberll));border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border-radius:8px;border:1px solid var(--bd);">
+          <span>👤 <strong>Guest</strong></span>
+          <span style="color:var(--tx3);font-size:12px">ถาม 5/วัน • ตรวจ 2 หน้า</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border-radius:8px;border:1px solid rgba(30,100,240,.2);">
+          <span>🏅 <strong style="color:var(--navy)">Officer</strong></span>
+          <span style="color:var(--tx3);font-size:12px">ถาม 20/วัน • ตรวจ 10 หน้า</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border-radius:8px;border:1px solid rgba(202,138,4,.3);">
+          <span>👑 <strong style="color:var(--amber)">Admin</strong></span>
+          <span style="color:var(--tx3);font-size:12px">ไม่จำกัด • ทุกบริการ</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:6px;font-weight:600">รหัสผ่าน</label>
+      <input type="password" id="loginPass" placeholder="ใส่รหัสผ่าน..." onkeydown="if(event.key==='Enter')doLogin()"
+        style="width:100%;background:var(--cream2);border:2px solid var(--bd);border-radius:9px;padding:11px 14px;font-size:14px;font-family:'Sarabun',sans-serif;color:var(--tx);outline:none;transition:border-color .2s;"
+        onfocus="this.style.borderColor='var(--navy2)'" onblur="this.style.borderColor='var(--bd)'">
+      <div id="loginErr" style="font-size:12px;color:var(--re);margin-top:6px;min-height:18px;"></div>
+    </div>
+    <div class="mbtns">
+      <button class="mbcancel" onclick="closeLoginModal()">ยกเลิก</button>
+      <button class="mbconf" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- DONATE MODAL -->
+<div class="mbg" id="modal" style="display:none">
+  <div class="modal">
+    <button class="mclose" onclick="cm()">✕</button>
+    <h2 id="mt">💛 สนับสนุนค่าบริการ</h2>
+    <p id="md">เพื่อให้บริการนี้เปิดให้ใช้งานสำหรับทุกคนในวงสหกรณ์</p>
+    <div class="ppbox">
+      <div class="pplbl">PromptPay</div>
+      <div class="ppnum" id="ppn">XXX-XXX-XXXX</div>
+      <div class="ppname" id="ppna">ชื่อ-นามสกุล</div>
+      <div class="ppamt" id="ppa">฿0</div>
+      <div class="ppnote" id="ppno">โอนแล้วกดยืนยัน</div>
+    </div>
+    <div class="mbtns">
+      <button class="mbcancel" onclick="cm()">ยกเลิก</button>
+      <button class="mbconf" onclick="cd()">✅ โอนแล้ว ปลดล็อคทันที</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-// ════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════
-let files     = [];
-let dpi       = 200;
-let fmt       = 'docx';
-let running   = false;
-let allResults = [];
+const PP_NUM='XXX-XXX-XXXX', PP_NAME='ชื่อ-นามสกุล', API_URL='/api/ocr';
+let fil='all', it='bylaw', iFile=null, oFiles=[], oDPI=200, oFmt='docx', oRun=false, oRes=[], pAct=null, pAmt=0, pBonus=0;
+const uid=(()=>{let i=localStorage.getItem('cl_uid');if(!i){i='u_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);localStorage.setItem('cl_uid',i);}return i;})();
 
-// ← Vercel จะ inject URL อัตโนมัติ ไม่ต้องแก้
-const API_URL = '/api/ocr';
+// ═══ ROLES ═══
+// เปลี่ยน password ได้ตรงนี้
+const ROLES = {
+  admin:   { pass: 'admin2025',   label: '👑 Admin',   askDay: 99999, inspectPages: 99999, ocrPages: 99999 },
+  officer: { pass: 'officer2025', label: '🏅 Officer', askDay: 20,    inspectPages: 10,    ocrPages: 10    },
+  guest:   { pass: null,          label: '👤 Guest',   askDay: 5,     inspectPages: 2,     ocrPages: 2     },
+};
 
-// ════════════════════════════════════════════
-// UI
-// ════════════════════════════════════════════
-function setDPI(val, el) {
-  dpi = val;
-  const cls = { 150:'active-go', 200:'active-gr', 300:'active-pu' };
-  document.querySelectorAll('#dpiGroup .rbtn').forEach(b => {
-    b.className = 'rbtn';
-  });
-  el.classList.add(cls[val] || 'active-gr');
-  updateCost();
+function getRole() {
+  const saved = localStorage.getItem('cl_role');
+  return ROLES[saved] ? saved : 'guest';
 }
+function getRoleObj() { return ROLES[getRole()]; }
+function isAdmin()    { return getRole() === 'admin'; }
+function isOfficer()  { return getRole() === 'officer'; }
 
-function setFmt(val, el) {
-  fmt = val;
-  document.querySelectorAll('#fmtGroup .rbtn').forEach(b => b.className = 'rbtn');
-  el.classList.add('active-ac');
+// ── Login ──────────────────────────────────────
+function showLoginModal() {
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('loginPass').value = '';
 }
-
-function dov(e) { e.preventDefault(); document.getElementById('dz').classList.add('drag'); }
-function dlv(e) { document.getElementById('dz').classList.remove('drag'); }
-function ddr(e) { e.preventDefault(); dlv(e); addFiles(e.dataTransfer.files); }
-
-function addFiles(fs) {
-  Array.from(fs).forEach(f => {
-    if (f.type === 'application/pdf' && !files.find(x => x.name === f.name))
-      files.push(f);
-  });
-  renderFiles(); updateCost();
+function closeLoginModal() {
+  document.getElementById('loginModal').style.display = 'none';
 }
-
-function removeFile(name) {
-  files = files.filter(f => f.name !== name);
-  renderFiles(); updateCost();
-}
-
-function estPages(f) { return Math.max(1, Math.round(f.size / 50000)); }
-
-function updateCost() {
-  const pages = files.reduce((s, f) => s + estPages(f), 0);
-  document.getElementById('costChip').textContent =
-    pages > 0 ? `~${pages} หน้า / ฿${Math.ceil(pages * 0.75)}` : '0 หน้า / ฿0';
-}
-
-function renderFiles() {
-  document.getElementById('flist').innerHTML = files.map(f => `
-    <div class="fitem">
-      <span>📋</span>
-      <span class="fi-name">${f.name}</span>
-      <span class="fi-info">~${estPages(f)} หน้า</span>
-      <button class="fi-rm" onclick="removeFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
-    </div>`).join('');
-}
-
-function log(msg, type = '') {
-  const box = document.getElementById('logBox');
-  const d   = document.createElement('div');
-  d.className = type; d.textContent = msg;
-  box.appendChild(d); box.scrollTop = box.scrollHeight;
-}
-
-function setProgress(pct, status) {
-  document.getElementById('progBar').style.width = pct + '%';
-  document.getElementById('progStatus').textContent = status;
-}
-
-function toast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast'; t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
-}
-
-// ════════════════════════════════════════════
-// PDF → IMAGES (PDF.js)
-// ════════════════════════════════════════════
-async function pdfToImages(file, dpiVal) {
-  if (!window.pdfjsLib) {
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+function doLogin() {
+  const pass = document.getElementById('loginPass').value.trim();
+  let matched = null;
+  for (const [role, obj] of Object.entries(ROLES)) {
+    if (obj.pass && obj.pass === pass) { matched = role; break; }
   }
-  const pdf    = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-  const scale  = dpiVal / 72;
-  const images = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page     = await pdf.getPage(i);
-    const vp       = page.getViewport({ scale });
-    const canvas   = document.createElement('canvas');
-    canvas.width   = vp.width; canvas.height = vp.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-    images.push({ pageNum: i, dataUrl: canvas.toDataURL('image/png') });
+  if (matched) {
+    localStorage.setItem('cl_role', matched);
+    closeLoginModal();
+    updateRoleUI();
+    toast('✅ เข้าสู่ระบบสำเร็จ — ' + ROLES[matched].label);
+  } else {
+    document.getElementById('loginErr').textContent = '❌ รหัสผ่านไม่ถูกต้อง';
   }
-  return images;
+}
+function doLogout() {
+  localStorage.removeItem('cl_role');
+  updateRoleUI();
+  toast('👋 ออกจากระบบแล้ว');
+}
+function updateRoleUI() {
+  const role = getRoleObj();
+  const isG  = getRole() === 'guest';
+  // update header badge
+  const badge = document.getElementById('roleBadge');
+  badge.textContent = role.label;
+  badge.style.background = isAdmin() ? 'rgba(202,138,4,.25)' : isOfficer() ? 'rgba(30,100,240,.2)' : 'rgba(255,255,255,.1)';
+  badge.style.color = isAdmin() ? '#fbbf24' : isOfficer() ? '#93c5fd' : 'rgba(255,255,255,.6)';
+  badge.style.borderColor = isAdmin() ? 'rgba(202,138,4,.4)' : isOfficer() ? 'rgba(30,100,240,.35)' : 'rgba(255,255,255,.2)';
+  // login/logout btn
+  document.getElementById('loginBtn').textContent  = isG ? '🔐 เข้าสู่ระบบ' : '🚪 ออก';
+  document.getElementById('loginBtn').onclick       = isG ? showLoginModal : doLogout;
+  uqui();
 }
 
-function loadScript(src) {
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
+// ═══ QUOTA ═══
+function tkey() { return 'q_' + new Date().toISOString().slice(0,10); }
+function gq() {
+  const role = getRoleObj();
+  const used  = parseInt(localStorage.getItem(tkey()) || '0');
+  const bonus = parseInt(localStorage.getItem('q_bonus') || '0');
+  const limit = role.askDay;
+  return { used, bonus, limit, left: Math.max(0, limit + bonus - used) };
+}
+function uq() {
+  const q = gq();
+  if (q.left <= 0) return false;
+  if (q.used < q.limit) localStorage.setItem(tkey(), q.used + 1);
+  else localStorage.setItem('q_bonus', Math.max(0, q.bonus - 1));
+  uqui(); return true;
+}
+function ab(n) {
+  localStorage.setItem('q_bonus', (parseInt(localStorage.getItem('q_bonus')||'0') + n));
+  uqui();
+}
+function uqui() {
+  const q = gq();
+  const el = document.getElementById('qNum');
+  el.textContent = isAdmin() ? '∞' : q.left;
+}
+
+// ── Page limit helpers ──────────────────────────
+function maxInspectPages() { return getRoleObj().inspectPages; }
+function maxOcrPages()     { return getRoleObj().ocrPages; }
+function checkPageLimit(pages, max, serviceName) {
+  if (isAdmin()) return true;
+  if (pages > max) {
+    toast(`⚠️ ${serviceName}: เกินโควต้า (สูงสุด ${max} หน้า/ครั้ง)`);
+    return false;
+  }
+  return true;
+}
+
+// TABS
+function switchTab(n,el){document.querySelectorAll('.tb').forEach(b=>b.classList.remove('act'));el.classList.add('act');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));document.getElementById('panel-'+n).classList.add('show');}
+function scrollToTabs(){document.getElementById('tabSection').scrollIntoView({behavior:'smooth',block:'start'});}
+
+// HELPERS
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
+function fq(q){switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs();setTimeout(()=>{document.getElementById('askIn').value=q;ar(document.getElementById('askIn'));document.getElementById('askIn').focus();},400);}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doAsk();}}
+function sf2(f,el){fil=f;document.querySelectorAll('#panel-search .fp').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+function sit(t,el){it=t;document.querySelectorAll('#itg .itp').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function sdpi(v,el){oDPI=v;const cls={150:'ogo',200:'ong',300:'opu'};document.querySelectorAll('#dg .rb2').forEach(b=>b.className='rb2');el.classList.add(cls[v]||'ong');uoc();}
+function sfmt(v,el){oFmt=v;document.querySelectorAll('#fg .rb2').forEach(b=>b.className='rb2');el.classList.add('oac');}
+function dov(e,id){e.preventDefault();document.getElementById(id)?.classList.add('drag');}
+function dlv(e,id){document.getElementById(id)?.classList.remove('drag');}
+function cm(){document.getElementById('modal').style.display='none';}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function cpTxt(btn,enc){navigator.clipboard.writeText(decodeURIComponent(enc));btn.textContent='✅ คัดลอกแล้ว';setTimeout(()=>btn.textContent='📋 คัดลอก',2000);}
+
+// AI API calls — ทั้งหมดผ่าน Vercel (ปลอดภัย)
+// ฟรี: Gemini Flash | จ่ายเงิน: Claude Sonnet
+async function callAsk(question, filter) {
+  const r = await fetch('/api/ask', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ question, filter })
   });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d.answer;
 }
-
-// ════════════════════════════════════════════
-// CALL VERCEL API
-// ════════════════════════════════════════════
-async function ocrPage(dataUrl, pageNum) {
-  const res = await fetch(API_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      imageBase64: dataUrl.split(',')[1],
-      pageNum,
-    })
+async function callInspect(docText, inspectType) {
+  const r = await fetch('/api/inspect', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ docText, inspectType })
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.text;
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d.result;
 }
 
-// ════════════════════════════════════════════
-// MAIN
-// ════════════════════════════════════════════
-async function startOCR() {
-  if (running) return;
-  if (!files.length) return alert('กรุณาเลือกไฟล์ PDF ก่อน');
+// RENDER ANSWER
+function rAns(text,cont,note=''){
+  let h=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^## (.+)$/gm,'<h3>$1</h3>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/gs,m=>`<ul>${m}</ul>`).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+  h=h.replace(/(มาตรา\s*\d+[ก-ฮ]?)/g,'<span class="ltag">$1</span>');
+  const enc=encodeURIComponent(text);
+  cont.innerHTML=`<div class="aw"><div class="acard"><div class="acard-h"><div class="aav">🤖</div><div><div class="aname">CoopLex AI</div><div class="atime">${new Date().toLocaleTimeString('th-TH')}</div></div><span class="abadge">Claude AI</span></div><div class="abody"><p>${h}</p></div><div class="afoot"><div class="anote">${note||'📚 พ.ร.บ.สหกรณ์ 2542 · กฎกระทรวง กสส. · ระเบียบนายทะเบียน'}</div><button class="abtn" onclick="cpTxt(this,'${enc}')">📋 คัดลอก</button><button class="abtn" onclick="this.closest('.aw').remove()">✕ ปิด</button></div></div></div>`;
+}
+function shL(el,msg){el.innerHTML=`<div class="aw"><div class="acard" style="padding:22px"><div class="ldwrap"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span class="ltxt">${msg}</span></div></div></div>`;}
 
-  running = true;
-  allResults = [];
-  const btn = document.getElementById('runBtn');
-  btn.disabled = true; btn.textContent = '⏳ กำลังแปลง...';
-  document.getElementById('progSec').style.display = 'block';
-  document.getElementById('logBox').innerHTML = '';
-  document.getElementById('results').innerHTML = '';
+// INSPECT
+function ddi(e){e.preventDefault();dlv(e,'idz');hif(e.dataTransfer.files);}
+function ep(f){return Math.max(1,Math.round(f.size/2000));}
+function ip(pg){if(pg<=2)return 0;if(pg<=10)return 99;return 199;}
+function hif(files){
+  if(!files[0])return;iFile=files[0];const pg=ep(iFile),p=ip(pg);
+  document.getElementById('ifi').innerHTML=`<div class="fitem"><div class="fi-ico">📋</div><div class="fi-name">${iFile.name}</div><span class="fi-pg">~${pg} หน้า</span><span class="fi-pr ${p===0?'fp-fr':'fp-pd'}">${p===0?'ฟรี':'฿'+p}</span></div>`;
+  document.getElementById('icc').textContent=p===0?'ฟรี ✅':'฿'+p;
+}
+async function doInspect(){
+  if(!iFile)return toast('⚠️ กรุณาแนบเอกสารก่อน');
+  const pg=ep(iFile);
+  if(!checkPageLimit(pg, maxInspectPages(), 'ตรวจเอกสาร')) return;
+  const p=ip(pg);if(p>0&&!isAdmin()&&!isOfficer()){showM('insp',p);return;}await _di();
+}
+async function _di(){
+  const btn=document.getElementById('ibtn');btn.disabled=true;btn.textContent='⏳ กำลังตรวจ...';
+  const res=document.getElementById('ires');shL(res,'AI กำลังวิเคราะห์เอกสาร...');res.scrollIntoView({behavior:'smooth',block:'start'});
+  const tl={bylaw:'ข้อบังคับสหกรณ์',reg:'ระเบียบสหกรณ์',notice:'คำสั่ง/ประกาศ'}[it];
+  try{
+    const txt=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsText(iFile);});
+    const r=await callInspect(txt.slice(0,20000), it);
+    rIR(r);
+  }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
+  btn.disabled=false;btn.textContent='🔍 เริ่มตรวจเอกสาร';
+}
+function rIR(r){
+  const sc=r.score>=80?'sr-g':r.score>=60?'sr-y':'sr-r';
+  const lb=r.score>=80?'ผ่านเกณฑ์ดี':r.score>=60?'ควรปรับปรุง':'ต้องแก้ไขด่วน';
+  const lbc=r.score>=80?'var(--gr)':r.score>=60?'var(--amber)':'var(--re)';
+  const re=encodeURIComponent(JSON.stringify(r));
+  document.getElementById('ires').innerHTML=`<div style="margin-top:8px">
+    <div class="score-card"><div class="sc-ring ${sc}"><span class="sr-n">${r.score}</span><span class="sr-m">/100</span></div><div class="sc-info"><h2 style="color:${lbc}">ผลการตรวจ: ${lb}</h2><p>${r.summary}</p></div></div>
+    <div class="rg">
+      <div class="rgc rgc-ok"><div class="rgc-h" style="color:var(--gr)">✅ ความครบถ้วน (${r.complete?.length||0})</div><div class="rgc-its">${(r.complete||[]).map(i=>`<div class="rgc-it"><span class="rgc-d">✅</span><span>${i}</span></div>`).join('')||'<div style="color:var(--tx3);font-size:12px">ไม่พบข้อมูล</div>'}</div></div>
+      <div class="rgc rgc-er"><div class="rgc-h" style="color:var(--re)">❌ ข้อขัดแย้ง (${r.conflict?.length||0})</div><div class="rgc-its">${(r.conflict||[]).map(i=>`<div class="rgc-it"><span class="rgc-d">❌</span><span>${i}</span></div>`).join('')||'<div style="color:var(--gr);font-size:12px;font-weight:600">✅ ไม่พบข้อขัดแย้ง</div>'}</div></div>
+      <div class="rgc rgc-wn"><div class="rgc-h" style="color:var(--amber)">⚠️ จุดเสี่ยง (${r.risk?.length||0})</div><div class="rgc-its">${(r.risk||[]).map(i=>`<div class="rgc-it"><span class="rgc-d">⚠️</span><span>${i}</span></div>`).join('')||'<div style="color:var(--gr);font-size:12px;font-weight:600">✅ ไม่พบจุดเสี่ยง</div>'}</div></div>
+      <div class="rgc rgc-tp"><div class="rgc-h" style="color:var(--pu)">💡 คำแนะนำ (${r.suggest?.length||0})</div><div class="rgc-its">${(r.suggest||[]).map(i=>`<div class="rgc-it"><span class="rgc-d">💡</span><span>${i}</span></div>`).join('')||'<div style="color:var(--tx3);font-size:12px">-</div>'}</div></div>
+    </div>
+    <div class="exp-card"><div class="exp-h">🎓 ความเห็นผู้เชี่ยวชาญ</div><div class="exp-b">${r.expert}</div></div>
+    <button class="dl-btn" onclick="dlRep(decodeURIComponent('${re}'))">📄 ดาวน์โหลดรายงานฉบับเต็ม</button>
+  </div>`;
+}
+function dlRep(rs){
+  const r=JSON.parse(rs);
+  const txt=[`รายงานการตรวจสอบเอกสารสหกรณ์`,`จัดทำโดย CoopLex AI`,`วันที่: ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}`,`${'═'.repeat(50)}`,`ผลการตรวจ: ${r.score}/100`,r.summary,``,`ความครบถ้วน:`,...(r.complete||[]).map(i=>`  ✅ ${i}`),``,`ข้อขัดแย้ง:`,...(r.conflict||[]).map(i=>`  ❌ ${i}`),``,`จุดเสี่ยง:`,...(r.risk||[]).map(i=>`  ⚠️ ${i}`),``,`คำแนะนำ:`,...(r.suggest||[]).map(i=>`  💡 ${i}`),``,`ความเห็นผู้เชี่ยวชาญ:`,r.expert,`${'═'.repeat(50)}`,`⚠️ ข้อมูลนี้เป็นการอ้างอิงเบื้องต้น กรุณาตรวจสอบกับผู้เชี่ยวชาญก่อนนำไปใช้งานจริง`].join('\n');
+  tdl(new Blob([txt],{type:'text/plain;charset=utf-8'}),'รายงานตรวจสอบเอกสารสหกรณ์.txt');toast('✅ ดาวน์โหลดรายงานแล้ว');
+}
 
-  const total = files.length;
-  log(`🚀 เริ่มแปลง ${total} ไฟล์`, 'info');
+// SEARCH
+async function doAsk(){
+  const q=document.getElementById('askIn').value.trim();if(!q)return;
+  if(!uq()){showM('ask');return;}
+  const btn=document.getElementById('askBtn');btn.disabled=true;
+  const res=document.getElementById('askRes');
+  shL(res,'AI กำลังค้นหาข้อมูลกฎหมาย...');res.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    const t=await callAsk(q, fil);
+    rAns(t,res,'📚 พ.ร.บ.สหกรณ์ 2542 · กฎกระทรวง กสส. · ระเบียบนายทะเบียน (Gemini AI)');
+  }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
+  btn.disabled=false;
+}
 
-  for (let fi = 0; fi < files.length; fi++) {
-    const file = files[fi];
-    log(`\n📄 [${fi+1}/${total}] ${file.name}`, 'info');
-    setProgress((fi / total) * 100, `โหลด ${file.name}...`);
-
-    try {
-      log('   แปลง PDF เป็นรูปภาพ (PDF.js)...', '');
-      const images = await pdfToImages(file, dpi);
-      log(`   พบ ${images.length} หน้า`, 'ok');
-
-      const pages = [];
-      for (let pi = 0; pi < images.length; pi++) {
-        const { pageNum, dataUrl } = images[pi];
-        setProgress(((fi + (pi+1)/images.length) / total) * 100,
-          `${file.name} — Claude อ่านหน้า ${pageNum}/${images.length}`);
-        log(`   🤖 หน้า ${pageNum}/${images.length}...`, '');
-
-        try {
-          const text = await ocrPage(dataUrl, pageNum);
-          pages.push({ pageNum, text });
-          log(`      ✅ "${text.slice(0,55).replace(/\n/g,' ')}..."`, 'ok');
-        } catch(e) {
-          log(`      ❌ หน้า ${pageNum}: ${e.message}`, 'err');
-          pages.push({ pageNum, text: `[อ่านไม่ได้: ${e.message}]` });
-        }
-
-        if (pi < images.length - 1) await sleep(700);
+// OCR
+function ddo(e){e.preventDefault();dlv(e,'odz');aof(e.dataTransfer.files);}
+function aof(fs){Array.from(fs).forEach(f=>{if(f.type==='application/pdf'&&!oFiles.find(x=>x.name===f.name))oFiles.push(f);});rofl();uoc();}
+function rof(n){oFiles=oFiles.filter(f=>f.name!==n);rofl();uoc();}
+function oep(f){return Math.max(1,Math.round(f.size/50000));}
+function op(pg){if(pg<=2)return 0;if(pg<=5)return 20;if(pg<=10)return 50;if(pg<=30)return 99;return 199;}
+function uoc(){const pg=oFiles.reduce((s,f)=>s+oep(f),0),c=oFiles.reduce((s,f)=>s+op(oep(f)),0);document.getElementById('ocost').textContent=pg>0?`~${pg} หน้า / ฿${c}`:'0 หน้า / ฿0';}
+function rofl(){document.getElementById('ofl').innerHTML=oFiles.map(f=>`<div class="fitem"><div class="fi-ico">📋</div><div class="fi-name">${f.name}</div><span class="fi-pg">~${oep(f)} หน้า</span><span class="fi-pr ${op(oep(f))===0?'fp-fr':'fp-pd'}">${op(oep(f))===0?'ฟรี':'฿'+op(oep(f))}</span><button class="fi-rm" onclick="rof('${f.name.replace(/'/g,"\\'")}')">✕</button></div>`).join('');}
+function olog(m,t=''){const b=document.getElementById('olbox');const d=document.createElement('div');d.className=t;d.textContent=m;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+function osp(p,s){document.getElementById('opb').style.width=p+'%';document.getElementById('opst').textContent=s;}
+async function p2i(file,dv){
+  if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const sc=dv/72,imgs=[];
+  for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const vp=page.getViewport({scale:sc});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;imgs.push({pageNum:i,dataUrl:cv.toDataURL('image/png')});}
+  return imgs;
+}
+async function ocrP(du){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:du.split(',')[1]})});const d=await r.json();if(d.error)throw new Error(d.error);return d.text;}
+async function startOCR(){
+  if(oRun)return;if(!oFiles.length)return toast('⚠️ กรุณาเลือกไฟล์ PDF ก่อน');
+  const totalPg=oFiles.reduce((s,f)=>s+oep(f),0);
+  if(!checkPageLimit(totalPg, maxOcrPages(), 'แปลง PDF')) return;
+  const tc=oFiles.reduce((s,f)=>s+op(oep(f)),0);if(tc>0&&!isAdmin()&&!isOfficer()){showM('ocr',tc);return;}await _sOCR();
+}
+async function _sOCR(){
+  oRun=true;oRes=[];const btn=document.getElementById('obtn');btn.disabled=true;btn.textContent='⏳ กำลังแปลง...';
+  document.getElementById('ops').style.display='block';document.getElementById('olbox').innerHTML='';document.getElementById('ores').innerHTML='';
+  olog(`🚀 เริ่มแปลง ${oFiles.length} ไฟล์`,'info');
+  for(let fi=0;fi<oFiles.length;fi++){
+    const file=oFiles[fi];olog(`\n📄 [${fi+1}/${oFiles.length}] ${file.name}`,'info');osp((fi/oFiles.length)*100,`โหลด ${file.name}...`);
+    try{
+      const imgs=await p2i(file,oDPI);olog(`   พบ ${imgs.length} หน้า`,'ok');const pages=[];
+      for(let pi=0;pi<imgs.length;pi++){
+        const{pageNum,dataUrl}=imgs[pi];osp(((fi+(pi+1)/imgs.length)/oFiles.length)*100,`${file.name} — Claude อ่านหน้า ${pageNum}/${imgs.length}`);olog(`   🤖 หน้า ${pageNum}/${imgs.length}...`,'');
+        try{const t=await ocrP(dataUrl);pages.push({pageNum,text:t});olog(`      ✅ "${t.slice(0,55).replace(/\n/g,' ')}..."`,'ok');}
+        catch(e){olog(`      ❌ ${e.message}`,'err');pages.push({pageNum,text:`[อ่านไม่ได้: ${e.message}]`});}
+        if(pi<imgs.length-1)await sleep(800);
       }
-
-      allResults.push({ name: file.name, pages });
-      log(`   ✅ ${file.name} เสร็จ`, 'ok');
-
-    } catch(e) {
-      log(`   ❌ ${e.message}`, 'err');
-    }
+      oRes.push({name:file.name,pages});olog(`   ✅ ${file.name} เสร็จ`,'ok');
+    }catch(e){olog(`   ❌ ${e.message}`,'err');}
   }
-
-  setProgress(100, '✅ เสร็จแล้ว!');
-  log('\n✅ แปลงครบทุกไฟล์', 'ok');
-  renderResults();
-
-  running = false;
-  btn.disabled = false; btn.textContent = '🤖 เริ่มแปลง PDF → Word';
+  osp(100,'✅ เสร็จแล้ว!');olog('\n✅ แปลงครบทุกไฟล์','ok');rOR();oRun=false;btn.disabled=false;btn.textContent='🤖 เริ่มแปลง PDF → Word';
 }
-
-// ════════════════════════════════════════════
-// RESULTS
-// ════════════════════════════════════════════
-function renderResults() {
-  document.getElementById('results').innerHTML = allResults.map((r, i) => {
-    const allText = r.pages.map(p => p.text).join('\n\n');
-    return `
-    <div class="result-card">
-      <div class="rc-head">
-        <span style="font-size:13px;font-weight:600">📄 ${r.name}</span>
-        <span style="font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace">${r.pages.length} หน้า</span>
-      </div>
-      <div class="rc-preview">${allText.slice(0, 400)}${allText.length > 400 ? '\n...' : ''}</div>
-      <div class="rc-foot">
-        <button class="sm-btn" style="background:linear-gradient(135deg,var(--ac),#0d7fd4)"
-          onclick="dlDocx(${i})">📝 Word</button>
-        <button class="sm-btn" style="background:linear-gradient(135deg,var(--gr),#059669)"
-          onclick="dlTxt(${i})">📄 TXT</button>
-        <button class="sm-btn" style="background:var(--sf3);color:var(--tx2)"
-          onclick="copyAll(${i})">📋 คัดลอก</button>
-      </div>
-    </div>`;
-  }).join('');
+function rOR(){document.getElementById('ores').innerHTML=oRes.map((r,i)=>{const at=r.pages.map(p=>p.text).join('\n\n');return`<div class="rcrd"><div class="rcrh"><span style="font-size:13px;font-weight:700;color:var(--navy)">📄 ${r.name}</span><span style="font-size:11px;color:var(--tx3);font-family:'IBM Plex Mono',monospace">${r.pages.length} หน้า</span></div><div class="rcrp">${at.slice(0,350)}${at.length>350?'\n...':''}</div><div class="rcrf"><button class="smb" style="background:linear-gradient(135deg,var(--navy),var(--navy3))" onclick="dldx(${i})">📝 Word</button><button class="smb" style="background:linear-gradient(135deg,var(--gr2),#166534)" onclick="dltx(${i})">📄 TXT</button><button class="smb" style="background:var(--tx);color:#fff" onclick="cpa(${i})">📋 คัดลอก</button></div></div>`;}).join('');}
+async function dldx(i){const r=oRes[i];const stem=r.name.replace(/\.pdf$/i,'');try{const b=await mkdx(stem,r.pages.map(p=>p.text));tdl(b,stem+'.docx');toast('✅ ดาวน์โหลด Word แล้ว!');}catch(e){toast('❌ '+e.message);}}
+function dltx(i){const r=oRes[i];const stem=r.name.replace(/\.pdf$/i,'');tdl(new Blob([r.pages.map(p=>`\n[หน้า ${p.pageNum}]\n${'─'.repeat(40)}\n${p.text.trim()}`).join('\n')],{type:'text/plain;charset=utf-8'}),stem+'.txt');toast('✅ ดาวน์โหลด TXT แล้ว!');}
+function cpa(i){navigator.clipboard.writeText(oRes[i].pages.map(p=>p.text).join('\n\n')).then(()=>toast('✅ คัดลอกแล้ว!'));}
+async function mkdx(title,pagesText){
+  const body=pagesText.map((text,i)=>{const lines=text.split('\n').filter(l=>l.trim()).map(line=>{line=line.trim();const esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');let b='',c='1a0e00',sz='28';if(['หมวด','ภาค','กฎกระทรวง','ระเบียบ','ประกาศ','พระราชบัญญัติ'].some(k=>line.startsWith(k))){b='<w:b/>';c='0d2744';sz='30';}else if(/^มาตรา\s*\d|^ข้อ\s*\d/.test(line)){b='<w:b/>';c='92400e';}return`<w:p><w:r><w:rPr>${b}<w:color w:val="${c}"/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${esc}</w:t></w:r></w:p>`;}).join('');return`<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="9a7840"/><w:sz w:val="18"/></w:rPr><w:t>— หน้า ${i+1} —</w:t></w:r></w:p>${lines}`;}).join('<w:p><w:r><w:rPr><w:color w:val="ddd0b8"/></w:rPr><w:t>──────────────────────────────────────────────────</w:t></w:r></w:p>');
+  const te=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const dx=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0d2744"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>${te}</w:t></w:r></w:p><w:p/>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800"/></w:sectPr></w:body></w:document>`;
+  const z=new JSZip();
+  z.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
+  z.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  z.file('word/document.xml',dx);z.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
+  return z.generateAsync({type:'blob'});
 }
+function tdl(blob,name){const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:name});a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 
-async function dlDocx(i) {
-  const r    = allResults[i];
-  const stem = r.name.replace(/\.pdf$/i, '');
-  const texts = r.pages.map(p => p.text);
-  try {
-    const blob = await makeDocx(stem, texts);
-    triggerDL(blob, stem + '.docx');
-    toast('✅ ดาวน์โหลด Word แล้ว!');
-  } catch(e) { toast('❌ ' + e.message); }
+// MODAL
+function showM(act,amt=0){
+  pAct=act;pAmt=amt;
+  if(act==='ask'){pAmt=20;pBonus=15;document.getElementById('mt').textContent='💛 เติมโควต้าคำถาม';document.getElementById('md').textContent='คุณใช้โควต้าฟรีครบแล้ว สนับสนุนเพื่อถามต่อ';document.getElementById('ppa').textContent='฿20';document.getElementById('ppno').textContent='โอนแล้วกดยืนยัน → ได้เพิ่ม 15 ครั้งทันที';}
+  else{pBonus=0;document.getElementById('mt').textContent='💛 ชำระค่าบริการ';document.getElementById('md').textContent=`ค่าบริการ${act==='insp'?'ตรวจเอกสาร':'แปลง PDF'}`;document.getElementById('ppa').textContent='฿'+amt;document.getElementById('ppno').textContent='โอนแล้วกดยืนยัน — ระบบปลดล็อคทันที';}
+  document.getElementById('ppn').textContent=PP_NUM;document.getElementById('ppna').textContent=PP_NAME;document.getElementById('modal').style.display='flex';
 }
+async function cd(){cm();if(pAct==='ask'){ab(pBonus);toast('✅ ขอบคุณ! เพิ่ม '+pBonus+' ครั้งแล้ว');setTimeout(doAsk,500);}else if(pAct==='insp'){toast('✅ ขอบคุณ! กำลังตรวจ...');setTimeout(_di,500);}else if(pAct==='ocr'){toast('✅ ขอบคุณ! กำลังแปลง...');setTimeout(_sOCR,500);}}
 
-function dlTxt(i) {
-  const r    = allResults[i];
-  const stem = r.name.replace(/\.pdf$/i, '');
-  const txt  = r.pages.map(p => `\n[หน้า ${p.pageNum}]\n${'─'.repeat(40)}\n${p.text.trim()}`).join('\n');
-  triggerDL(new Blob([txt], { type: 'text/plain;charset=utf-8' }), stem + '.txt');
-  toast('✅ ดาวน์โหลด TXT แล้ว!');
-}
-
-function copyAll(i) {
-  navigator.clipboard.writeText(allResults[i].pages.map(p => p.text).join('\n\n'))
-    .then(() => toast('✅ คัดลอกแล้ว!'));
-}
-
-// ════════════════════════════════════════════
-// MAKE DOCX
-// ════════════════════════════════════════════
-async function makeDocx(title, pagesText) {
-  const body = pagesText.map((text, i) => {
-    const lines = text.split('\n').filter(l => l.trim()).map(line => {
-      line = line.trim();
-      const esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      let bold = '', color = '000000', size = '28';
-      if (['หมวด','ภาค','กฎกระทรวง','ระเบียบ','ประกาศ','พระราชบัญญัติ'].some(k => line.startsWith(k))) {
-        bold = '<w:b/>'; color = '1a5c8a'; size = '30';
-      } else if (/^มาตรา\s*\d|^ข้อ\s*\d/.test(line)) {
-        bold = '<w:b/>'; color = '8b0000';
-      }
-      return `<w:p><w:r><w:rPr>${bold}<w:color w:val="${color}"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr><w:t xml:space="preserve">${esc}</w:t></w:r></w:p>`;
-    }).join('');
-    const hdr = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="94a3b8"/><w:sz w:val="18"/></w:rPr><w:t>— หน้า ${i+1} —</w:t></w:r></w:p>`;
-    const sep = i < pagesText.length-1 ? `<w:p><w:r><w:rPr><w:color w:val="cccccc"/></w:rPr><w:t>${'─'.repeat(50)}</w:t></w:r></w:p>` : '';
-    return hdr + lines + sep;
-  }).join('');
-
-  const titleEsc = title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1a5c8a"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>${titleEsc}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:color w:val="64748b"/><w:sz w:val="18"/></w:rPr><w:t>ถอดข้อความโดย CoopLex OCR (Claude AI)</w:t></w:r></w:p><w:p/>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800"/></w:sectPr></w:body></w:document>`;
-
-  const zip = new JSZip();
-  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
-  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
-  zip.file('word/document.xml', docXml);
-  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
-  return zip.generateAsync({ type: 'blob' });
-}
-
-function triggerDL(blob, name) {
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// init — เลือก DPI 200 ไว้แล้ว
-document.querySelector('#dpiGroup .rbtn:nth-child(2)').classList.add('active-gr');
+updateRoleUI();
 </script>
 </body>
 </html>
