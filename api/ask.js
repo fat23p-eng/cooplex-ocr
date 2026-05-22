@@ -1,5 +1,4 @@
 // api/ask.js — ค้นหากฎหมาย (ฟรี) → Gemini 2.5 Flash
-// ปลอดภัย: API Key อยู่ใน Vercel Environment Variable
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,9 +21,9 @@ export default async function handler(req, res) {
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
 ตอบภาษาไทยที่เข้าใจง่าย อ้างอิงมาตราและกฎหมายเสมอ
 ใช้ ## นำหน้าหัวข้อ ใช้ **ตัวหนา** สำหรับคำสำคัญ
+ตอบให้ครบถ้วนสมบูรณ์ทุกครั้ง ห้ามตัดคำตอบกลางคัน
 ขอบเขต: ${filterLabel}`;
 
-    // ใช้ Gemini Flash (ฟรี tier สูง)
     const apiKey = process.env.GEMINI_API_KEY;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
@@ -34,7 +33,10 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: question }] }],
-        generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.7,
+        },
       }),
     });
 
