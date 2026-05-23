@@ -77,7 +77,7 @@ ${context}
 
     // ── เรียก Gemini ───────────────────────────────────
     const apiKey = process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -99,7 +99,7 @@ ${context}
 
     return res.status(200).json({
       answer,
-      provider: 'gemini-1.5-flash',
+      provider: 'gemini-2.5-flash',
       fromKnowledge: hasKnowledge,
     });
 
