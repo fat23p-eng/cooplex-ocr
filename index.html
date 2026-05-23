@@ -817,7 +817,7 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function cpTxt(btn,enc){navigator.clipboard.writeText(decodeURIComponent(enc));btn.textContent='✅ คัดลอกแล้ว';setTimeout(()=>btn.textContent='📋 คัดลอก',2000);}
 
 // AI API calls — ทั้งหมดผ่าน Vercel (ปลอดภัย)
-// ฟรี: Gemini Flash | จ่ายเงิน: Claude Sonnet
+// ทุกบริการใช้ Claude Sonnet
 async function callAsk(question, filter) {
   const r = await fetch('/api/ask', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -912,7 +912,7 @@ async function doAsk(){
   window.scrollTo({top:scrollY,behavior:'instant'});
   try{
     const t=await callAsk(q, fil);
-    rAns(t,res,'📚 พ.ร.บ.สหกรณ์ 2542 · กฎกระทรวง กสส. · นายทะเบียนสหกรณ์ (Gemini AI)');
+    rAns(t,res,'📚 พ.ร.บ.สหกรณ์ 2542 · กฎกระทรวง กสส. · นายทะเบียนสหกรณ์ (Claude AI)');
   }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
   btn.disabled=false;
 }
