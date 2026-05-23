@@ -407,12 +407,21 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
 <!-- TAB 1: ตรวจข้อบังคับ/ระเบียบ -->
 <div class="panel show" id="panel-inspect">
   <div class="card">
-    <div class="card-head"><div class="chi chi-nv">📋</div>ประเภทเอกสารที่ต้องการตรวจ</div>
+    <div class="card-head"><div class="chi chi-nv">🏦</div>ประเภทสหกรณ์</div>
     <div class="card-body">
-      <div class="itype-pills" id="itg">
-        <div class="itp on" onclick="sit('bylaw',this)">📜 ข้อบังคับสหกรณ์</div>
-        <div class="itp" onclick="sit('reg',this)">📋 ระเบียบสหกรณ์</div>
-        <div class="itp" onclick="sit('notice',this)">📌 คำสั่ง / ประกาศ</div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:7px;font-weight:600">ประเภทสหกรณ์</label>
+        <div class="itype-pills" id="coopTypeGroup">
+          <div class="itp on" onclick="setCoopType('saving',this)">💰 สหกรณ์ออมทรัพย์</div>
+          <div class="itp" onclick="setCoopType('credit',this)">🤝 สหกรณ์เครดิตยูเนียน</div>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:7px;font-weight:600">ขนาดสหกรณ์ (ทุนดำเนินงานทั้งสิ้น)</label>
+        <div class="itype-pills" id="coopSizeGroup">
+          <div class="itp on" onclick="setCoopSize('small',this)">🏠 ขนาดเล็ก (ทุน &lt; 5,000 ล้านบาท)</div>
+          <div class="itp" onclick="setCoopSize('large',this)">🏢 ขนาดใหญ่ (ทุน ≥ 5,000 ล้านบาท)</div>
+        </div>
       </div>
     </div>
   </div>
@@ -790,6 +799,14 @@ function fq(q){switchTab('search',document.querySelectorAll('.tb')[1]);scrollToT
 function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doAsk();}}
 function sf2(f,el){fil=f;document.querySelectorAll('#panel-search .fp').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
 function sit(t,el){it=t;document.querySelectorAll('#itg .itp').forEach(b=>b.classList.remove('on'));el.classList.add('on');}
+function setCoopType(t,el){coopType=t;document.querySelectorAll('#coopTypeGroup .itp').forEach(b=>b.classList.remove('on'));el.classList.add('on');updateInspectInfo();}
+function setCoopSize(s,el){coopSize=s;document.querySelectorAll('#coopSizeGroup .itp').forEach(b=>b.classList.remove('on'));el.classList.add('on');updateInspectInfo();}
+function updateInspectInfo(){
+  const tl={saving:'สหกรณ์ออมทรัพย์',credit:'สหกรณ์เครดิตยูเนียน'}[coopType];
+  const sl=coopSize==='large'?'ขนาดใหญ่ (ทุน ≥ 5,000 ล้านบาท)':'ขนาดเล็ก (ทุน < 5,000 ล้านบาท)';
+  const el=document.getElementById('inspectInfoTag');
+  if(el) el.textContent=`${tl} • ${sl}`;
+}
 function sdpi(v,el){oDPI=v;const cls={150:'ogo',200:'ong',300:'opu'};document.querySelectorAll('#dg .rb2').forEach(b=>b.className='rb2');el.classList.add(cls[v]||'ong');uoc();}
 function sfmt(v,el){oFmt=v;document.querySelectorAll('#fg .rb2').forEach(b=>b.className='rb2');el.classList.add('oac');}
 function dov(e,id){e.preventDefault();document.getElementById(id)?.classList.add('drag');}
@@ -810,10 +827,10 @@ async function callAsk(question, filter) {
   if (d.error) throw new Error(d.error);
   return d.answer;
 }
-async function callInspect(docText, inspectType) {
+async function callInspect(docText, inspectType, coopType, coopSize) {
   const r = await fetch('/api/inspect', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ docText, inspectType })
+    body: JSON.stringify({ docText, inspectType, coopType, coopSize })
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
@@ -850,7 +867,7 @@ async function _di(){
   const tl={bylaw:'ข้อบังคับสหกรณ์',reg:'ระเบียบสหกรณ์',notice:'คำสั่ง/ประกาศ'}[it];
   try{
     const txt=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsText(iFile);});
-    const r=await callInspect(txt.slice(0,20000), it);
+    const r=await callInspect(txt.slice(0,20000), it, coopType, coopSize);
     rIR(r);
   }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
   btn.disabled=false;btn.textContent='🔍 เริ่มตรวจเอกสาร';
