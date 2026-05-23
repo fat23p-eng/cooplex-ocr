@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
 ตอบภาษาไทยที่เข้าใจง่าย อ้างอิงมาตราและกฎหมายเสมอ
 ใช้ ## นำหน้าหัวข้อ ใช้ **ตัวหนา** สำหรับคำสำคัญ
-ตอบให้ครบถ้วนสมบูรณ์ ห้ามตัดกลางคัน
+ตอบกระชับตรงประเด็น ไม่เกิน 5-6 ย่อหน้า ห้ามตัดกลางคัน
 ขอบเขต: ${filterLabel}`;
 
     // ── User Prompt ────────────────────────────────────
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 1500,
+        max_tokens: 800,
         system,
         messages: [{ role: 'user', content: userPrompt }],
       }),

@@ -86,7 +86,7 @@ export default async function handler(req, res) {
 5. ห้ามระบุว่าขัดกฎหมายโดยไม่มีหลักฐานชัดเจน ถ้าไม่แน่ใจให้ระบุว่า "ควรตรวจสอบเพิ่มเติม"
 6. ห้ามตีความกฎหมายเกินกว่าที่บัญญัติไว้ใน ม.41
 
-ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น:
+ตอบเป็น JSON กระชับ แต่ละรายการไม่เกิน 1 ประโยค ห้ามมีข้อความอื่น:
 {
   "score": 0-100,
   "coopType": "${typeLabel}",
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        max_tokens: 1000,
         system,
         messages: [{ role: 'user', content: userPrompt }],
       }),
