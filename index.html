@@ -48,6 +48,7 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
 @keyframes pp{0%,100%{box-shadow:0 0 0 3px rgba(74,222,128,.2)}50%{box-shadow:0 0 0 6px rgba(74,222,128,.05)}}
 
 /* ═══ HERO BANNER (ใหญ่) ═══ */
+@media(max-width:768px){.hb-illus{display:none!important;}}
 .hero-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 40%,var(--navy3) 70%,#1a4a8a 100%);padding:60px 28px 52px;position:relative;overflow:hidden;}
 .hero-banner::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
 .hero-banner::after{content:'⚖️';position:absolute;right:5%;top:50%;transform:translateY(-50%);font-size:160px;opacity:.06;line-height:1;}
@@ -337,20 +338,170 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
 
 <!-- HERO BANNER ใหญ่ -->
 <div class="hero-banner">
-  <div class="hb-inner">
-    <div class="hb-eyebrow">🤖 AI LEGAL SYSTEM v2025</div>
-    <h1>ระบบตรวจ<span class="accent">กฎหมายสหกรณ์</span><br>อัจฉริยะด้วย AI</h1>
-    <p>วิเคราะห์ข้อบังคับ ระเบียบ ค้นหากฎหมาย และแปลงเอกสาร PDF สแกน<br>อ้างอิง พ.ร.บ.สหกรณ์ พ.ศ.2542 | กฎกระทรวง | นายทะเบียนสหกรณ์สหกรณ์</p>
-    <div class="hb-stats">
-      <div class="hb-stat"><div class="hb-stat-num">150+</div><div class="hb-stat-lbl">มาตรา พ.ร.บ.</div></div>
-      <div class="hb-stat"><div class="hb-stat-num">80+</div><div class="hb-stat-lbl">กฎกระทรวง</div></div>
-      <div class="hb-stat"><div class="hb-stat-num">200+</div><div class="hb-stat-lbl">นายทะเบียนสหกรณ์</div></div>
-      <div class="hb-stat"><div class="hb-stat-num">99%</div><div class="hb-stat-lbl">ความแม่นยำ OCR</div></div>
+  <div class="hb-inner" style="display:flex;align-items:center;gap:32px;max-width:1100px;margin:0 auto;">
+    <!-- LEFT: Text -->
+    <div style="flex:1;min-width:0;">
+      <div class="hb-eyebrow">🤖 AI LEGAL SYSTEM v2025</div>
+      <h1>ระบบตรวจ<span class="accent">กฎหมายสหกรณ์</span><br>อัจฉริยะด้วย AI</h1>
+      <p>วิเคราะห์ข้อบังคับ ระเบียบ ค้นหากฎหมาย และแปลงเอกสาร PDF สแกน<br>อ้างอิง พ.ร.บ.สหกรณ์ พ.ศ.2542 | กฎกระทรวง | นายทะเบียนสหกรณ์</p>
+      <div class="hb-stats">
+        <div class="hb-stat"><div class="hb-stat-num">150+</div><div class="hb-stat-lbl">มาตรา พ.ร.บ.</div></div>
+        <div class="hb-stat"><div class="hb-stat-num">80+</div><div class="hb-stat-lbl">กฎกระทรวง</div></div>
+        <div class="hb-stat"><div class="hb-stat-num">200+</div><div class="hb-stat-lbl">นายทะเบียนสหกรณ์</div></div>
+        <div class="hb-stat"><div class="hb-stat-num">99%</div><div class="hb-stat-lbl">ความแม่นยำ OCR</div></div>
+      </div>
+      <div class="hb-cta">
+        <button class="cta-main" onclick="switchTab('inspect',document.querySelectorAll('.tb')[0]);scrollToTabs()">🔎 เริ่มตรวจเอกสาร</button>
+        <button class="cta-sec" onclick="switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs()">🔍 ค้นหากฎหมาย</button>
+        <a href="https://fat23p-eng.github.io/BylawsTemBigCoop/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:700;font-family:'Sarabun',sans-serif;text-decoration:none;transition:all .2s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">📝 จัดทำร่างข้อบังคับสหกรณ์ออมทรัพย์ <span style="background:var(--amber3);color:var(--navy);padding:2px 8px;border-radius:20px;font-size:12px;margin-left:4px;">฿20</span></a>
+      </div>
     </div>
-    <div class="hb-cta">
-      <button class="cta-main" onclick="switchTab('inspect',document.querySelectorAll('.tb')[0]);scrollToTabs()">🔎 เริ่มตรวจเอกสาร</button>
-      <button class="cta-sec" onclick="switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs()">🔍 ค้นหากฎหมาย</button>
-      <a href="https://fat23p-eng.github.io/BylawsTemBigCoop/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:700;font-family:'Sarabun',sans-serif;text-decoration:none;transition:all .2s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">📝 จัดทำร่างข้อบังคับสหกรณ์ออมทรัพย์ <span style="background:var(--amber3);color:var(--navy);padding:2px 8px;border-radius:20px;font-size:12px;margin-left:4px;">฿20</span></a>
+    <!-- RIGHT: AI Illustration -->
+    <div style="flex-shrink:0;width:320px;display:flex;align-items:center;justify-content:center;" class="hb-illus">
+      <svg viewBox="0 0 320 320" width="320" height="320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#1e40af" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="botGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#60a5fa"/>
+            <stop offset="100%" stop-color="#3b82f6"/>
+          </linearGradient>
+          <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#1e3a5f"/>
+          </linearGradient>
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#d97706"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Background glow -->
+        <circle cx="160" cy="160" r="150" fill="url(#bgGlow)"/>
+
+        <!-- Orbit rings -->
+        <ellipse cx="160" cy="160" rx="140" ry="50" fill="none" stroke="rgba(96,165,250,0.15)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <ellipse cx="160" cy="160" rx="110" ry="110" fill="none" stroke="rgba(245,158,11,0.12)" stroke-width="1" stroke-dasharray="4 6"/>
+
+        <!-- Floating document cards -->
+        <!-- Card 1: ข้อบังคับ -->
+        <g transform="translate(20,60)" opacity="0.9">
+          <rect width="72" height="50" rx="8" fill="#1e3a5f" stroke="rgba(96,165,250,0.4)" stroke-width="1.5"/>
+          <rect x="8" y="10" width="40" height="3" rx="1.5" fill="#60a5fa" opacity="0.8"/>
+          <rect x="8" y="17" width="56" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="22" width="48" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="27" width="52" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="32" width="36" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <text x="36" y="45" text-anchor="middle" fill="#f59e0b" font-size="7" font-family="sans-serif" font-weight="bold">ข้อบังคับ</text>
+        </g>
+
+        <!-- Card 2: กฎหมาย -->
+        <g transform="translate(228,50)" opacity="0.9">
+          <rect width="72" height="50" rx="8" fill="#1e3a5f" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+          <rect x="8" y="10" width="40" height="3" rx="1.5" fill="#f59e0b" opacity="0.8"/>
+          <rect x="8" y="17" width="56" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="22" width="44" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="27" width="50" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="32" width="38" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <text x="36" y="45" text-anchor="middle" fill="#60a5fa" font-size="7" font-family="sans-serif" font-weight="bold">กฎหมาย</text>
+        </g>
+
+        <!-- Card 3: PDF -->
+        <g transform="translate(20,210)" opacity="0.85">
+          <rect width="72" height="50" rx="8" fill="#1e3a5f" stroke="rgba(74,222,128,0.3)" stroke-width="1.5"/>
+          <text x="36" y="22" text-anchor="middle" fill="#4ade80" font-size="16" font-family="sans-serif">📄</text>
+          <rect x="8" y="28" width="56" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="33" width="44" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <text x="36" y="45" text-anchor="middle" fill="#4ade80" font-size="7" font-family="sans-serif" font-weight="bold">PDF OCR</text>
+        </g>
+
+        <!-- Card 4: ระเบียบ -->
+        <g transform="translate(228,218)" opacity="0.85">
+          <rect width="72" height="50" rx="8" fill="#1e3a5f" stroke="rgba(167,139,250,0.3)" stroke-width="1.5"/>
+          <rect x="8" y="10" width="36" height="3" rx="1.5" fill="#a78bfa" opacity="0.8"/>
+          <rect x="8" y="17" width="56" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="22" width="48" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="8" y="27" width="40" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+          <text x="36" y="45" text-anchor="middle" fill="#a78bfa" font-size="7" font-family="sans-serif" font-weight="bold">ระเบียบ</text>
+        </g>
+
+        <!-- Connection lines -->
+        <line x1="92" y1="105" x2="120" y2="140" stroke="rgba(96,165,250,0.3)" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="228" y1="98" x2="200" y2="135" stroke="rgba(245,158,11,0.3)" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="92" y1="220" x2="120" y2="195" stroke="rgba(74,222,128,0.3)" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="228" y1="230" x2="200" y2="200" stroke="rgba(167,139,250,0.3)" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- Robot body -->
+        <g filter="url(#glow)">
+          <!-- Body -->
+          <rect x="108" y="145" width="104" height="90" rx="20" fill="url(#botGrad)" opacity="0.95"/>
+          <!-- Head -->
+          <rect x="118" y="100" width="84" height="70" rx="18" fill="url(#botGrad)"/>
+          <!-- Antenna -->
+          <line x1="160" y1="100" x2="160" y2="82" stroke="#93c5fd" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="160" cy="78" r="5" fill="#f59e0b" filter="url(#glow)"/>
+          <!-- Screen/Face -->
+          <rect x="126" y="112" width="68" height="46" rx="10" fill="url(#screenGrad)" stroke="rgba(96,165,250,0.5)" stroke-width="1.5"/>
+          <!-- Eyes -->
+          <circle cx="145" cy="132" r="8" fill="#0f172a"/>
+          <circle cx="145" cy="132" r="5" fill="#60a5fa"/>
+          <circle cx="145" cy="132" r="2.5" fill="#fff"/>
+          <circle cx="175" cy="132" r="8" fill="#0f172a"/>
+          <circle cx="175" cy="132" r="5" fill="#60a5fa"/>
+          <circle cx="175" cy="132" r="2.5" fill="#fff"/>
+          <!-- Eye glow dots -->
+          <circle cx="147" cy="130" r="1" fill="white" opacity="0.8"/>
+          <circle cx="177" cy="130" r="1" fill="white" opacity="0.8"/>
+          <!-- Mouth/Scan line -->
+          <rect x="134" y="148" width="52" height="4" rx="2" fill="rgba(96,165,250,0.2)"/>
+          <rect x="134" y="148" width="20" height="4" rx="2" fill="#60a5fa" opacity="0.8">
+            <animate attributeName="width" values="20;52;20" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <!-- Arms -->
+          <rect x="80" y="158" width="30" height="14" rx="7" fill="#3b82f6"/>
+          <rect x="210" y="158" width="30" height="14" rx="7" fill="#3b82f6"/>
+          <!-- Hands -->
+          <circle cx="76" cy="165" r="8" fill="#60a5fa"/>
+          <circle cx="244" cy="165" r="8" fill="#60a5fa"/>
+          <!-- Belly screen -->
+          <rect x="120" y="158" width="80" height="50" rx="10" fill="rgba(15,23,42,0.6)" stroke="rgba(96,165,250,0.3)" stroke-width="1"/>
+          <!-- Belly content: text lines -->
+          <rect x="128" y="166" width="50" height="2.5" rx="1" fill="#f59e0b" opacity="0.9"/>
+          <rect x="128" y="172" width="64" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x="128" y="177" width="56" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x="128" y="182" width="60" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+          <rect x="128" y="188" width="40" height="2" rx="1" fill="#60a5fa" opacity="0.6"/>
+          <!-- Legs -->
+          <rect x="128" y="232" width="22" height="28" rx="8" fill="#3b82f6"/>
+          <rect x="170" y="232" width="22" height="28" rx="8" fill="#3b82f6"/>
+          <!-- Feet -->
+          <rect x="122" y="252" width="34" height="10" rx="5" fill="#2563eb"/>
+          <rect x="164" y="252" width="34" height="10" rx="5" fill="#2563eb"/>
+        </g>
+
+        <!-- Floating particles -->
+        <circle cx="95" cy="160" r="3" fill="#f59e0b" opacity="0.7">
+          <animate attributeName="cy" values="160;150;160" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.7;0.3;0.7" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="225" cy="175" r="2.5" fill="#60a5fa" opacity="0.6">
+          <animate attributeName="cy" values="175;165;175" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="160" cy="60" r="2" fill="#4ade80" opacity="0.5">
+          <animate attributeName="cx" values="160;170;160" dur="4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.5;0.1;0.5" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="160" cy="290" r="2" fill="#f59e0b" opacity="0.4">
+          <animate attributeName="cx" values="160;150;160" dur="3.5s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
     </div>
   </div>
 </div>
