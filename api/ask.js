@@ -77,7 +77,7 @@ ${context}
 
     // ── เรียก Gemini ───────────────────────────────────
     const apiKey = process.env.GEMINI_API_KEY;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -85,8 +85,8 @@ ${context}
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
         generationConfig: {
-          maxOutputTokens: 2048,
-          temperature: 0.3,  // ต่ำ = ตอบตรงตามข้อมูล ไม่เดา
+          maxOutputTokens: 1500,
+          temperature: 0.3,
         },
       }),
     });
@@ -99,7 +99,7 @@ ${context}
 
     return res.status(200).json({
       answer,
-      provider: 'gemini-2.0-flash',
+      provider: 'gemini-1.5-flash',
       fromKnowledge: hasKnowledge,
     });
 
@@ -129,13 +129,13 @@ function searchRelevant(question, fullText) {
   // เอา top 5 ที่เกี่ยวข้อง
   const relevant = scored
     .filter(c => c.score > 0)
-    .slice(0, 5)
+    .slice(0, 3)
     .map(c => c.text);
 
   // จำกัดขนาดรวมไม่เกิน 8000 ตัวอักษร
   let result = '';
   for (const chunk of relevant) {
-    if ((result + chunk).length > 8000) break;
+    if ((result + chunk).length > 3000) break;
     result += chunk + '\n\n';
   }
 
