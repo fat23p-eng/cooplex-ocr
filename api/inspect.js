@@ -32,8 +32,9 @@ export default async function handler(req, res) {
 
       for (const blob of blobs) {
         const name = blob.pathname.toLowerCase();
-        const r = await fetch(blob.downloadUrl);
-        const text = await r.text();
+        const { download } = await import('@vercel/blob');
+        const { text: getText } = await download(blob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
+        const text = await getText();
 
         // Template ตรงประเภท+ขนาด
         if (coopType === 'saving' && coopSize === 'large' &&
@@ -91,7 +92,12 @@ export default async function handler(req, res) {
    โดยความเห็นชอบของนายทะเบียนสหกรณ์
 5. ถ้าร่างสอดคล้อง Template มาตรฐานกรมส่งเสริมสหกรณ์ ให้ถือว่าถูกต้อง
 
-ตอบเป็น JSON กระชับ แต่ละรายการไม่เกิน 1 ประโยค ห้ามมีข้อความอื่น:
+ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น
+รูปแบบผลลัพธ์แต่ละรายการ:
+- status: "ถูกต้อง" | "มีปัญหา" | "ควรตรวจสอบ"
+- detail: อธิบายกระชับ 1 ประโยค อ้างอิงมาตราถ้ามี
+- suggestion: คำแนะนำสั้นๆ (ถ้าจำเป็น)
+JSON format:
 {
   "score": 0-100,
   "coopType": "${typeLabel}",

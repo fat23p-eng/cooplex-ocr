@@ -25,24 +25,21 @@ export default async function handler(req, res) {
       const { blobs } = await list({ limit: 100 });
       console.log('Blob files found:', blobs.length, blobs.map(b => b.pathname));
 
+      const { download } = await import('@vercel/blob');
       const contents = await Promise.all(
         blobs
           .filter(b => {
-            const p = b.pathname || b.url || '';
-            return p.endsWith('.txt') || p.endsWith('.csv') ||
-                   p.includes('กฎหมาย') || p.includes('ระเบียบ') ||
-                   p.includes('checklist') || p.includes('พระราช');
+            const p = b.pathname || '';
+            return p.endsWith('.txt') || p.endsWith('.csv');
           })
           .map(async (blob) => {
             try {
-              const url = blob.downloadUrl || blob.url;
-              const r = await fetch(url);
-              if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return ''; }
-              const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars');
-              return `[${blob.pathname}]\n${text}`;
+              const { text } = await download(blob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
+              const content = await text();
+              console.log('Loaded:', blob.pathname, content.length, 'chars');
+              return `[${blob.pathname}]\n${content}`;
             } catch (e) {
-              console.warn('Error fetching blob:', blob.pathname, e.message);
+              console.warn('Fetch failed:', blob.pathname, e.message);
               return '';
             }
           })
