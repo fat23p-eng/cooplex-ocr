@@ -61,8 +61,22 @@ ${text}`;
       // แยกแต่ละไฟล์ด้วย delimiter [ชื่อไฟล์.txt]
       const fileBlocks = knowledgeText.split(/(?=\[[^\]]+\.txt\])/);
       const allChunks = [];
-      const keywords = extractKeywords(question);
+      let keywords = extractKeywords(question);
       const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
+
+      // Special case: เพิ่ม keyword เฉพาะเรื่อง
+      if (question.includes('ชุมนุมสหกรณ์') && !matraMatch) {
+        keywords = [...keywords, 'หมวด 7', 'มาตรา 101', 'มาตรา 102', 'จัดตั้งชุมนุม'];
+      }
+      if (question.includes('ควบสหกรณ์') || question.includes('การควบ')) {
+        keywords = [...keywords, 'หมวด 5', 'มาตรา 90', 'ควบเข้ากัน'];
+      }
+      if (question.includes('แยกสหกรณ์') || question.includes('การแยก')) {
+        keywords = [...keywords, 'หมวด 6', 'มาตรา 96'];
+      }
+      if (question.includes('สมาชิกสมทบ')) {
+        keywords = [...keywords, 'มาตรา 41', 'สมาชิกสมทบ'];
+      }
 
       for (const block of fileBlocks) {
         if (!block.trim()) continue;
