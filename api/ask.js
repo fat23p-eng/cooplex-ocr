@@ -18,30 +18,29 @@ export default async function handler(req, res) {
       notice: 'นายทะเบียนสหกรณ์',
     }[filter || 'all'];
 
-    // ── ดึง Knowledge จาก Vercel Blob ─────────────────
+    // ── ดึง Knowledge จาก Vercel Blob (Server-side with token) ──
     let knowledgeText = '';
     try {
-      const { list } = await import('@vercel/blob');
-      const { blobs } = await list({ limit: 100 });
-      console.log('Blob files:', blobs.length, blobs.map(b=>b.pathname));
+      const { list, head } = await import('@vercel/blob');
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      const { blobs } = await list({ limit: 100, token });
+      console.log('Blob files:', blobs.length);
 
       const contents = await Promise.all(
         blobs
-          .filter(b => b.pathname.endsWith('.txt') || b.pathname.endsWith('.csv'))
+          .filter(b => b.pathname.endsWith('.txt'))
           .map(async (blob) => {
             try {
-              // ใช้ url ตรงๆ (public) ไม่ใช่ downloadUrl
-              const r = await fetch(blob.url);
+              // ดึงด้วย token ผ่าน Authorization header
+              const r = await fetch(blob.url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
               if (!r.ok) {
-                // ลอง downloadUrl สำรอง
-                const r2 = await fetch(blob.downloadUrl);
-                if (!r2.ok) { console.warn('Both URLs failed:', blob.pathname, r.status); return ''; }
-                const text = await r2.text();
-                return `[${blob.pathname}]
-${text}`;
+                console.warn('Failed:', blob.pathname, r.status);
+                return '';
               }
               const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              console.log('Loaded:', blob.pathname, text.length);
               return `[${blob.pathname}]
 ${text}`;
             } catch(e) {

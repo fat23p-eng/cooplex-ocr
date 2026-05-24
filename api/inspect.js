@@ -22,17 +22,20 @@ export default async function handler(req, res) {
       ? 'ขนาดใหญ่ (ทุนดำเนินงาน ≥ 5,000 ล้านบาท)'
       : 'ขนาดเล็ก (ทุนดำเนินงาน < 5,000 ล้านบาท)';
 
-    // ── ดึง Knowledge จาก Vercel Blob ─────────────────
+    // ── ดึง Knowledge จาก Vercel Blob (Server-side with token) ──
     let templateText = '', lawText = '', checklistText = '';
     try {
       const { list } = await import('@vercel/blob');
-      const { blobs } = await list({ limit: 100 });
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      const { blobs } = await list({ limit: 100, token });
 
       await Promise.all(blobs
         .filter(b => b.pathname.endsWith('.txt'))
         .map(async (blob) => {
           try {
-            const r = await fetch(blob.url);
+            const r = await fetch(blob.url, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (!r.ok) return;
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
@@ -52,7 +55,7 @@ export default async function handler(req, res) {
           } catch(e) { console.warn('Error:', blob.pathname, e.message); }
         })
       );
-      console.log('Template:', templateText.length, 'Law:', lawText.length, 'Checklist:', checklistText.length);
+      console.log('Template:', templateText.length, 'Law:', lawText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);
     }
