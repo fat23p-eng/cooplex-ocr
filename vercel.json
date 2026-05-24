@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "functions": {
-    "api/ocr.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  "builds": [
+    { "src": "api/**/*.mjs", "use": "@vercel/node" },
+    { "src": "index.html",  "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)",     "dest": "/index.html" }
+  ]
 }
