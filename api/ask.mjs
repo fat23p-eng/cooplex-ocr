@@ -58,31 +58,41 @@ ${text}`;
     // ── ค้นหาเฉพาะส่วนที่เกี่ยวข้อง ──────────────────
     let context = '';
     if (knowledgeText) {
-      // แบ่งค้นแต่ละไฟล์แยกกัน แล้วรวม top results
-      const fileTexts = knowledgeText.split(/\[.*?\.txt\]\n/);
+      // แยกแต่ละไฟล์ด้วย delimiter [ชื่อไฟล์.txt]
+      const fileBlocks = knowledgeText.split(/(?=\[.*?\.txt\])/);
       const allChunks = [];
-      for (const fileText of fileTexts) {
-        if (!fileText.trim()) continue;
-        const chunks = splitBySection(fileText);
-        const keywords = extractKeywords(question);
-        for (const chunk of chunks) {
-          const score = scoreChunk(chunk, keywords);
-          if (score > 0) allChunks.push({ text: chunk, score });
-        }
-      }
-      // Exact match มาตรา
+      const keywords = extractKeywords(question);
       const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
-      if (matraMatch) {
-        const target = `มาตรา ${matraMatch[1]}`;
-        for (const fileText of fileTexts) {
-          const chunks = splitBySection(fileText);
-          for (const chunk of chunks) {
+
+      for (const block of fileBlocks) {
+        if (!block.trim()) continue;
+        // ดึงชื่อไฟล์
+        const fileNameMatch = block.match(/^\[(.*?\.txt)\]/);
+        const fileName = fileNameMatch ? fileNameMatch[1] : '';
+        const fileText = block.replace(/^\[.*?\.txt\]\n?/, '');
+
+        // weight พิเศษตามลำดับความสำคัญ
+        let fileBonus = 0;
+        if (fileName.includes('พระราชบัญญัติ')) fileBonus = 20;       // พ.ร.บ. สำคัญที่สุด
+        else if (fileName.includes('กฎกระทรวง')) fileBonus = 10;      // กฎกระทรวง
+        else if (fileName.includes('ระเบียบ')) fileBonus = 5;          // ระเบียบนายทะเบียน
+        else if (fileName.includes('checklist')) fileBonus = 3;        // checklist
+
+        const chunks = splitBySection(fileText);
+        for (const chunk of chunks) {
+          // Exact match มาตรา
+          if (matraMatch) {
+            const target = `มาตรา ${matraMatch[1]}`;
             if (chunk.trimStart().startsWith(target) || chunk.slice(0, 50).includes(target)) {
-              allChunks.push({ text: chunk, score: 999 });
+              allChunks.push({ text: chunk, score: 999 + fileBonus });
+              continue;
             }
           }
+          const score = scoreChunk(chunk, keywords);
+          if (score > 0) allChunks.push({ text: chunk, score: score + fileBonus });
         }
       }
+
       allChunks.sort((a, b) => b.score - a.score);
       const seen = new Set();
       for (const c of allChunks) {
