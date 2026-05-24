@@ -49,9 +49,7 @@ ${text}`;
             }
           })
       );
-      knowledgeText = contents.filter(Boolean).join('
-
-');
+      knowledgeText = contents.filter(Boolean).join('\n\n');
       console.log('Total knowledge chars:', knowledgeText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);
