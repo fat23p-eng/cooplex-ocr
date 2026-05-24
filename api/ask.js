@@ -23,28 +23,36 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
       const { blobs } = await list({ limit: 100 });
-      console.log('Blob files found:', blobs.length, blobs.map(b => b.pathname));
+      console.log('Blob files:', blobs.length, blobs.map(b=>b.pathname));
 
-      const { download } = await import('@vercel/blob');
       const contents = await Promise.all(
         blobs
-          .filter(b => {
-            const p = b.pathname || '';
-            return p.endsWith('.txt') || p.endsWith('.csv');
-          })
+          .filter(b => b.pathname.endsWith('.txt') || b.pathname.endsWith('.csv'))
           .map(async (blob) => {
             try {
-              const { text } = await download(blob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
-              const content = await text();
-              console.log('Loaded:', blob.pathname, content.length, 'chars');
-              return `[${blob.pathname}]\n${content}`;
-            } catch (e) {
-              console.warn('Fetch failed:', blob.pathname, e.message);
+              // ใช้ url ตรงๆ (public) ไม่ใช่ downloadUrl
+              const r = await fetch(blob.url);
+              if (!r.ok) {
+                // ลอง downloadUrl สำรอง
+                const r2 = await fetch(blob.downloadUrl);
+                if (!r2.ok) { console.warn('Both URLs failed:', blob.pathname, r.status); return ''; }
+                const text = await r2.text();
+                return `[${blob.pathname}]
+${text}`;
+              }
+              const text = await r.text();
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return `[${blob.pathname}]
+${text}`;
+            } catch(e) {
+              console.warn('Error:', blob.pathname, e.message);
               return '';
             }
           })
       );
-      knowledgeText = contents.filter(Boolean).join('\n\n');
+      knowledgeText = contents.filter(Boolean).join('
+
+');
       console.log('Total knowledge chars:', knowledgeText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);

@@ -23,44 +23,36 @@ export default async function handler(req, res) {
       : 'ขนาดเล็ก (ทุนดำเนินงาน < 5,000 ล้านบาท)';
 
     // ── ดึง Knowledge จาก Vercel Blob ─────────────────
-    let templateText = '';
-    let lawText = '';
-
+    let templateText = '', lawText = '', checklistText = '';
     try {
-      const { list, head } = await import('@vercel/blob');
-      const { blobs } = await list();
+      const { list } = await import('@vercel/blob');
+      const { blobs } = await list({ limit: 100 });
 
-      for (const blob of blobs) {
-        const name = blob.pathname.toLowerCase();
-        const { download } = await import('@vercel/blob');
-        const { text: getText } = await download(blob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
-        const text = await getText();
+      await Promise.all(blobs
+        .filter(b => b.pathname.endsWith('.txt'))
+        .map(async (blob) => {
+          try {
+            const r = await fetch(blob.url);
+            if (!r.ok) return;
+            const text = await r.text();
+            const n = blob.pathname.toLowerCase();
+            if (n.includes('template') || n.includes('ออมทรัพย์') || n.includes('เครดิต')) {
+              templateText += text + '
 
-        // Template ตรงประเภท+ขนาด
-        if (coopType === 'saving' && coopSize === 'large' &&
-          (name.includes('ออมทรัพย์') || name.includes('saving')) &&
-          (name.includes('ใหญ่') || name.includes('large'))) {
-          templateText = text;
-        } else if (coopType === 'saving' && coopSize === 'small' &&
-          (name.includes('ออมทรัพย์') || name.includes('saving')) &&
-          (name.includes('เล็ก') || name.includes('small'))) {
-          templateText = text;
-        } else if (coopType === 'credit' && coopSize === 'large' &&
-          (name.includes('เครดิต') || name.includes('credit')) &&
-          (name.includes('ใหญ่') || name.includes('large'))) {
-          templateText = text;
-        } else if (coopType === 'credit' && coopSize === 'small' &&
-          (name.includes('เครดิต') || name.includes('credit')) &&
-          (name.includes('เล็ก') || name.includes('small'))) {
-          templateText = text;
-        }
+';
+            } else if (n.includes('checklist')) {
+              checklistText += text + '
 
-        // กฎหมาย พ.ร.บ. + ระเบียบนายทะเบียน
-        if (name.includes('พรบ') || name.includes('พระราชบัญญัติ') ||
-          name.includes('law') || name.includes('ระเบียบนายทะเบียน')) {
-          lawText += `\n\n[${blob.pathname}]\n${text}`;
-        }
-      }
+';
+            } else {
+              lawText += text + '
+
+';
+            }
+          } catch(e) { console.warn('Error:', blob.pathname, e.message); }
+        })
+      );
+      console.log('Template:', templateText.length, 'Law:', lawText.length, 'Checklist:', checklistText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);
     }
