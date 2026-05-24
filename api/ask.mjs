@@ -58,8 +58,42 @@ ${text}`;
     // ── ค้นหาเฉพาะส่วนที่เกี่ยวข้อง ──────────────────
     let context = '';
     if (knowledgeText) {
-      context = searchRelevant(question, knowledgeText);
+      // แบ่งค้นแต่ละไฟล์แยกกัน แล้วรวม top results
+      const fileTexts = knowledgeText.split(/\[.*?\.txt\]\n/);
+      const allChunks = [];
+      for (const fileText of fileTexts) {
+        if (!fileText.trim()) continue;
+        const chunks = splitBySection(fileText);
+        const keywords = extractKeywords(question);
+        for (const chunk of chunks) {
+          const score = scoreChunk(chunk, keywords);
+          if (score > 0) allChunks.push({ text: chunk, score });
+        }
+      }
+      // Exact match มาตรา
+      const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
+      if (matraMatch) {
+        const target = `มาตรา ${matraMatch[1]}`;
+        for (const fileText of fileTexts) {
+          const chunks = splitBySection(fileText);
+          for (const chunk of chunks) {
+            if (chunk.trimStart().startsWith(target) || chunk.slice(0, 50).includes(target)) {
+              allChunks.push({ text: chunk, score: 999 });
+            }
+          }
+        }
+      }
+      allChunks.sort((a, b) => b.score - a.score);
+      const seen = new Set();
+      for (const c of allChunks) {
+        if (seen.has(c.text)) continue;
+        seen.add(c.text);
+        if ((context + c.text).length > 6000) break;
+        context += c.text + '\n\n';
+      }
     }
+    console.log('Context sent to Claude:', context.length, 'chars');
+    console.log('Context preview:', context.slice(0, 200));
 
     // ── System Prompt ──────────────────────────────────
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
