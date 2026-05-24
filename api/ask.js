@@ -22,17 +22,33 @@ export default async function handler(req, res) {
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      const { blobs } = await list();
+      const { blobs } = await list({ limit: 100 });
+      console.log('Blob files found:', blobs.length, blobs.map(b => b.pathname));
+
       const contents = await Promise.all(
         blobs
-          .filter(b => b.pathname.endsWith('.csv') || b.pathname.endsWith('.txt'))
+          .filter(b => {
+            const p = b.pathname || b.url || '';
+            return p.endsWith('.txt') || p.endsWith('.csv') ||
+                   p.includes('กฎหมาย') || p.includes('ระเบียบ') ||
+                   p.includes('checklist') || p.includes('พระราช');
+          })
           .map(async (blob) => {
-            const r = await fetch(blob.downloadUrl);
-            const text = await r.text();
-            return `[${blob.pathname}]\n${text}`;
+            try {
+              const url = blob.downloadUrl || blob.url;
+              const r = await fetch(url);
+              if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return ''; }
+              const text = await r.text();
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return `[${blob.pathname}]\n${text}`;
+            } catch (e) {
+              console.warn('Error fetching blob:', blob.pathname, e.message);
+              return '';
+            }
           })
       );
-      knowledgeText = contents.join('\n\n');
+      knowledgeText = contents.filter(Boolean).join('\n\n');
+      console.log('Total knowledge chars:', knowledgeText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);
     }
@@ -53,7 +69,14 @@ export default async function handler(req, res) {
 4. ถ้าไม่แน่ใจให้บอกว่า "ไม่แน่ใจ ควรตรวจสอบกับผู้เชี่ยวชาญ"
 5. อ้างอิงมาตราและกฎหมายที่มาของข้อมูลเสมอ
 6. ตอบกระชับตรงประเด็น ไม่เกิน 5-6 ย่อหน้า ห้ามตัดกลางคัน
-7. ใช้ ## นำหน้าหัวข้อ ใช้ **ตัวหนา** สำหรับคำสำคัญ
+7. จัดรูปแบบคำตอบดังนี้:
+   - ขึ้นต้นด้วยสรุปสั้น 1-2 ประโยค
+   - ใช้หัวข้อ **ตัวหนา** แบ่งเป็นหมวด
+   - รายการย่อยใช้ - นำหน้า ติดกันไม่เว้นบรรทัด เช่น "- ข้อ 1\n- ข้อ 2\n- ข้อ 3"
+   - ระบุ (มาตรา XX) กำกับท้ายทุกข้อที่อ้างอิงกฎหมาย
+   - สรุปท้ายสั้นๆ 1 ประโยค
+   - ห้ามใช้ ## หรือ ### นำหน้าหัวข้อ
+   - ห้ามเว้นบรรทัดว่างระหว่าง bullet list
 
 ขอบเขต: \${filterLabel}`;
 
@@ -105,11 +128,11 @@ function searchRelevant(question, fullText) {
     .map(chunk => ({ text: chunk, score: scoreChunk(chunk, keywords) }))
     .filter(c => c.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, 5);
 
   let result = '';
   for (const c of scored) {
-    if ((result + c.text).length > 3000) break;
+    if ((result + c.text).length > 5000) break;
     result += c.text + '\n\n';
   }
   return result.trim();
@@ -125,7 +148,7 @@ function splitBySection(text) {
       current = line + '\n';
     } else {
       current += line + '\n';
-      if (current.length > 2000) { chunks.push(current.trim()); current = ''; }
+      if (current.length > 1000) { chunks.push(current.trim()); current = ''; }
     }
   }
   if (current.trim()) chunks.push(current.trim());
@@ -140,10 +163,14 @@ function extractKeywords(question) {
 
 function scoreChunk(chunk, keywords) {
   let score = 0;
-  const lower = chunk.toLowerCase();
   for (const kw of keywords) {
-    if (lower.includes(kw.toLowerCase()))
-      score += /^\d+$/.test(kw) ? 3 : 1;
+    // ค้นตรงๆ ไม่ lowercase เพราะภาษาไทยไม่มี case
+    const count = (chunk.match(new RegExp(kw, 'g')) || []).length;
+    if (count > 0) {
+      if (/^\d+$/.test(kw)) score += count * 3;      // เลขมาตรา
+      else if (kw.length >= 4) score += count * 2;   // คำยาว
+      else score += count * 1;                        // คำสั้น
+    }
   }
   return score;
 }
