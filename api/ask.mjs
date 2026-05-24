@@ -59,7 +59,7 @@ ${text}`;
     let context = '';
     if (knowledgeText) {
       // แยกแต่ละไฟล์ด้วย delimiter [ชื่อไฟล์.txt]
-      const fileBlocks = knowledgeText.split(/(?=\[.*?\.txt\])/);
+      const fileBlocks = knowledgeText.split(/(?=\[[^\]]+\.txt\])/);
       const allChunks = [];
       const keywords = extractKeywords(question);
       const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
@@ -67,16 +67,17 @@ ${text}`;
       for (const block of fileBlocks) {
         if (!block.trim()) continue;
         // ดึงชื่อไฟล์
-        const fileNameMatch = block.match(/^\[(.*?\.txt)\]/);
+        const fileNameMatch = block.match(/^\[([^\]]+\.txt)\]/);
         const fileName = fileNameMatch ? fileNameMatch[1] : '';
-        const fileText = block.replace(/^\[.*?\.txt\]\n?/, '');
+        const fileText = block.replace(/^\[[^\]]+\.txt\]\n?/, '');
 
         // weight พิเศษตามลำดับความสำคัญ
         let fileBonus = 0;
-        if (fileName.includes('พระราชบัญญัติ')) fileBonus = 20;       // พ.ร.บ. สำคัญที่สุด
-        else if (fileName.includes('กฎกระทรวง')) fileBonus = 10;      // กฎกระทรวง
-        else if (fileName.includes('ระเบียบ')) fileBonus = 5;          // ระเบียบนายทะเบียน
-        else if (fileName.includes('checklist')) fileBonus = 3;        // checklist
+        const fn = fileName.toLowerCase();
+        if (fn.includes('พระราชบัญญัติ') || fn.includes('2542')) fileBonus = 20;
+        else if (fn.includes('กฎกระทรวง')) fileBonus = 10;
+        else if (fn.includes('ระเบียบ')) fileBonus = 5;
+        else if (fn.includes('checklist')) fileBonus = 3;
 
         const chunks = splitBySection(fileText);
         for (const chunk of chunks) {
@@ -102,6 +103,8 @@ ${text}`;
         context += c.text + '\n\n';
       }
     }
+    console.log('File blocks:', fileBlocks.length);
+    console.log('All chunks scored:', allChunks.length, 'top score:', allChunks[0]?.score);
     console.log('Context sent to Claude:', context.length, 'chars');
     console.log('Context preview:', context.slice(0, 200));
 
@@ -154,6 +157,8 @@ ${text}`;
     if (data.error) return res.status(500).json({ error: 'Claude: ' + data.error.message });
 
     const answer = data.content?.[0]?.text || '';
+    console.log('File blocks:', fileBlocks.length);
+    console.log('All chunks scored:', allChunks.length, 'top score:', allChunks[0]?.score);
     console.log('Context sent to Claude:', context.length, 'chars');
     console.log('Context preview:', context.slice(0, 300));
     return res.status(200).json({
