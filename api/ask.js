@@ -128,14 +128,36 @@ export default async function handler(req, res) {
 function searchRelevant(question, fullText) {
   const chunks = splitBySection(fullText);
   const keywords = extractKeywords(question);
+
+  // 1. Exact match: ถ้าถามมาตราเฉพาะ เช่น "มาตรา 41" → ดึง chunk นั้นก่อนเลย
+  const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
+  const exactChunks = [];
+  if (matraMatch) {
+    const target = `มาตรา ${matraMatch[1]}`;
+    for (const chunk of chunks) {
+      // ต้องขึ้นต้นด้วย "มาตรา XX" หรือมีอยู่ใกล้ต้น chunk
+      if (chunk.trimStart().startsWith(target) || chunk.slice(0, 30).includes(target)) {
+        exactChunks.push({ text: chunk, score: 999 });
+      }
+    }
+  }
+
+  // 2. Keyword scoring สำหรับ chunk ที่เหลือ
   const scored = chunks
     .map(chunk => ({ text: chunk, score: scoreChunk(chunk, keywords) }))
     .filter(c => c.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 4);
+
+  // รวม exact chunks ไว้หน้า แล้วตามด้วย keyword chunks (ไม่ซ้ำ)
+  const exactTexts = new Set(exactChunks.map(c => c.text));
+  const combined = [
+    ...exactChunks,
+    ...scored.filter(c => !exactTexts.has(c.text)),
+  ].slice(0, 6);
 
   let result = '';
-  for (const c of scored) {
+  for (const c of combined) {
     if ((result + c.text).length > 5000) break;
     result += c.text + '\n\n';
   }
