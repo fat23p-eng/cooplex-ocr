@@ -108,10 +108,14 @@ export default async function handler(req, res) {
     if (data.error) return res.status(500).json({ error: 'Claude: ' + data.error.message });
 
     const answer = data.content?.[0]?.text || '';
+    console.log('Context sent to Claude:', context.length, 'chars');
+    console.log('Context preview:', context.slice(0, 300));
     return res.status(200).json({
       answer,
       provider: 'claude-sonnet-4',
       fromKnowledge: context.length > 0,
+      debug_context_chars: context.length,
+      debug_blob_chars: knowledgeText.length,
     });
 
   } catch (err) {
