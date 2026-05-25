@@ -117,8 +117,6 @@ ${text}`;
         context += c.text + '\n\n';
       }
     }
-    console.log('File blocks:', fileBlocks.length);
-    console.log('All chunks scored:', allChunks.length, 'top score:', allChunks[0]?.score);
     console.log('Context sent to Claude:', context.length, 'chars');
     console.log('Context preview:', context.slice(0, 200));
 
@@ -171,8 +169,6 @@ ${text}`;
     if (data.error) return res.status(500).json({ error: 'Claude: ' + data.error.message });
 
     const answer = data.content?.[0]?.text || '';
-    console.log('File blocks:', fileBlocks.length);
-    console.log('All chunks scored:', allChunks.length, 'top score:', allChunks[0]?.score);
     console.log('Context sent to Claude:', context.length, 'chars');
     console.log('Context preview:', context.slice(0, 300));
     return res.status(200).json({
