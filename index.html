@@ -1080,7 +1080,7 @@ function ddo(e){e.preventDefault();dlv(e,'odz');aof(e.dataTransfer.files);}
 function aof(fs){Array.from(fs).forEach(f=>{if(f.type==='application/pdf'&&!oFiles.find(x=>x.name===f.name))oFiles.push(f);});rofl();uoc();}
 function rof(n){oFiles=oFiles.filter(f=>f.name!==n);rofl();uoc();}
 function oep(f){return Math.max(1,Math.round(f.size/50000));}
-function op(pg){if(pg<=2)return 0;if(pg<=5)return 20;if(pg<=10)return 50;if(pg<=30)return 99;return 199;}
+function op(pg){if(pg<=0)return 0;var t1=Math.min(pg,20),t2=Math.min(Math.max(pg-20,0),10),t3=Math.min(Math.max(pg-30,0),19),t4=Math.max(pg-49,0);return t1*5+t2*3+t3*2+t4*1;}
 function uoc(){const pg=oFiles.reduce((s,f)=>s+oep(f),0),c=oFiles.reduce((s,f)=>s+op(oep(f)),0);document.getElementById('ocost').textContent=pg>0?`~${pg} หน้า / ฿${c}`:'0 หน้า / ฿0';}
 function rofl(){document.getElementById('ofl').innerHTML=oFiles.map(f=>`<div class="fitem"><div class="fi-ico">📋</div><div class="fi-name">${f.name}</div><span class="fi-pg">~${oep(f)} หน้า</span><span class="fi-pr ${op(oep(f))===0?'fp-fr':'fp-pd'}">${op(oep(f))===0?'ฟรี':'฿'+op(oep(f))}</span><button class="fi-rm" onclick="rof('${f.name.replace(/'/g,"\\'")}')">✕</button></div>`).join('');}
 function olog(m,t=''){const b=document.getElementById('olbox');const d=document.createElement('div');d.className=t;d.textContent=m;b.appendChild(d);b.scrollTop=b.scrollHeight;}
