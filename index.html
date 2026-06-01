@@ -1081,13 +1081,76 @@ async function _di(){
   const scrollY2=window.scrollY;
   shL(res,'AI กำลังวิเคราะห์เอกสาร...');
   window.scrollTo({top:scrollY2,behavior:'instant'});
-  const tl={bylaw:'ข้อบังคับสหกรณ์',reg:'ระเบียบสหกรณ์',notice:'คำสั่ง/ประกาศ'}[it];
   try{
-    const txt=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsText(iFile);});
+    let txt='';
+
+    if(iFile.type==='application/pdf'){
+      // ลอง extract text จาก PDF ก่อน
+      shL(res,'📄 กำลังอ่าน PDF...');
+      txt = await extractPdfText(iFile);
+
+      // ถ้าข้อความน้อยกว่า 100 ตัวอักษร = PDF สแกน → OCR อัตโนมัติ
+      if(txt.trim().length < 100){
+        shL(res,'🔍 PDF เป็นไฟล์สแกน กำลัง OCR อัตโนมัติ...');
+        txt = await ocrPdfForInspect(iFile);
+      }
+    } else {
+      // ไฟล์ .txt / .docx
+      txt = await new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsText(iFile);});
+    }
+
+    if(!txt || txt.trim().length < 50){
+      throw new Error('ไม่สามารถอ่านเนื้อหาเอกสารได้ กรุณาตรวจสอบไฟล์');
+    }
+
+    shL(res,'🤖 AI กำลังวิเคราะห์เอกสาร...');
     const r=await callInspect(txt.slice(0,20000), it, coopType, coopSize);
     rIR(r);
   }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
   btn.disabled=false;btn.textContent='🔍 เริ่มตรวจเอกสาร';
+}
+
+// ── extract text จาก PDF (text-layer) ──────────────────────
+async function extractPdfText(file){
+  try{
+    if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+    const ab = file._ab || await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: ab.slice(0)}).promise;
+    let allText = '';
+    for(let i=1; i<=Math.min(pdf.numPages, 50); i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(s=>s.str).join(' ');
+      allText += pageText + '
+
+';
+    }
+    return allText.trim();
+  }catch(e){
+    console.warn('extractPdfText failed:', e.message);
+    return '';
+  }
+}
+
+// ── OCR PDF สแกน สำหรับตรวจเอกสาร (ส่งทีละหน้า) ─────────
+async function ocrPdfForInspect(file){
+  const imgs = await p2i({file, pages: file._pages||0, _ab: file._ab||null}, oDPI);
+  const maxPages = Math.min(imgs.length, 20); // ตรวจไม่เกิน 20 หน้า
+  let allText = '';
+  for(let i=0; i<maxPages; i++){
+    const {dataUrl, pageNum} = imgs[i];
+    const b64 = dataUrl.split(',')[1];
+    try{
+      const t = await ocrP(b64);
+      allText += `[หน้า ${pageNum}]
+${t}
+
+`;
+    }catch(e){
+      console.warn('OCR page', pageNum, 'failed:', e.message);
+    }
+  }
+  return allText.trim();
 }
 function rIR(r){
   const sc=r.score>=80?'sr-g':r.score>=60?'sr-y':'sr-r';
