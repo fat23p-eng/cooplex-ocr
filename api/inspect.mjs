@@ -29,7 +29,16 @@ export default async function handler(req, res) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const { blobs } = await list({ limit: 100, token });
 
-      const coopKeyword = coopType === 'credit' ? 'เครดิต' : 'ออมทรัพย์';
+      // keyword ตาม coopType ที่ผู้ใช้เลือก
+      const typeKeywords = {
+        saving:  ['ออมทรัพย์', 'saving', 'osm'],
+        credit:  ['เครดิต', 'credit', 'cu'],
+      };
+      const matchKeywords = typeKeywords[coopType] || typeKeywords.saving;
+      const otherKeywords = coopType === 'credit'
+        ? typeKeywords.saving
+        : typeKeywords.credit;
+
       await Promise.all(blobs
         .filter(b => b.pathname.endsWith('.txt'))
         .map(async (blob) => {
@@ -40,20 +49,31 @@ export default async function handler(req, res) {
             if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return; }
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
-            const isTemplate = n.includes('template') || n.includes(coopKeyword);
-            const isOtherTemplate = n.includes('template') &&
-              (coopType === 'credit' ? n.includes('ออมทรัพย์') : n.includes('เครดิต'));
-            if (isOtherTemplate) {
-              // ข้าม template ของประเภทอื่น
-              console.log('Skip other-type template:', blob.pathname);
+
+            const isChecklist = n.includes('checklist');
+            // template คือไฟล์ที่มีคำว่า template ในชื่อ
+            const isTemplateFile = n.includes('template');
+            // ตรงประเภทที่เลือก = ชื่อมี keyword ของประเภทนั้น
+            const isMatchType = matchKeywords.some(k => n.includes(k));
+            // ประเภทอื่น = ชื่อมี keyword ของประเภทตรงข้าม
+            const isOtherType = otherKeywords.some(k => n.includes(k));
+
+            if (isChecklist) {
+              checklistText += text + '\n\n';
               return;
             }
-            if (isTemplate) {
+
+            if (isTemplateFile) {
+              if (isOtherType && !isMatchType) {
+                // ข้าม template ของประเภทอื่นชัดเจน
+                console.log('Skip other-type template:', blob.pathname);
+                return;
+              }
+              // ถ้าชื่อไม่มี keyword ใดเลย → โหลดไว้ก่อน (กัน template ที่ชื่อไม่บ่งบอกประเภท)
               templateText += text + '\n\n';
               console.log('Template loaded:', blob.pathname, text.length, 'chars');
-            } else if (n.includes('checklist')) {
-              checklistText += text + '\n\n';
             } else {
+              // ไฟล์กฎหมาย/ระเบียบ — โหลดทุกไฟล์ ไม่ต้องกรองตามประเภท
               lawText += text + '\n\n';
               console.log('Law loaded:', blob.pathname, text.length, 'chars');
             }
