@@ -1,13 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/**/*.mjs", "use": "@vercel/node" },
-    { "src": "index.html",  "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/ask",     "dest": "/api/ask.mjs" },
-    { "src": "/api/inspect", "dest": "/api/inspect.mjs" },
-    { "src": "/api/ocr",     "dest": "/api/ocr.mjs" },
-    { "src": "/(.*)",        "dest": "/index.html" }
-  ]
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
