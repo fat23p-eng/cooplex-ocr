@@ -1050,16 +1050,28 @@ function shL(el,msg){el.innerHTML=`<div class="aw"><div class="acard" style="pad
 
 // INSPECT
 function ddi(e){e.preventDefault();dlv(e,'idz');hif(e.dataTransfer.files);}
-function ep(f){return Math.max(1,Math.round(f.size/2000));}
+async function ep(f){
+  // อ่านจำนวนหน้าจริงจาก PDF
+  try{
+    if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
+    const ab=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    f._pages=pdf.numPages; f._ab=ab;
+    return pdf.numPages;
+  }catch(e){
+    console.warn('ep() failed:',e.message);
+    return Math.max(1,Math.round(f.size/50000)); // fallback หยาบๆ
+  }
+}
 function ip(pg){if(pg<=2)return 0;if(pg<=10)return 99;return 199;}
-function hif(files){
-  if(!files[0])return;iFile=files[0];const pg=ep(iFile),p=ip(pg);
+async function hif(files){
+  if(!files[0])return;iFile=files[0];const pg=await ep(iFile),p=ip(pg);
   document.getElementById('ifi').innerHTML=`<div class="fitem"><div class="fi-ico">📋</div><div class="fi-name">${iFile.name}</div><span class="fi-pg">~${pg} หน้า</span><span class="fi-pr ${p===0?'fp-fr':'fp-pd'}">${p===0?'ฟรี':'฿'+p}</span></div>`;
   document.getElementById('icc').textContent=p===0?'ฟรี ✅':'฿'+p;
 }
 async function doInspect(){
   if(!iFile)return toast('⚠️ กรุณาแนบเอกสารก่อน');
-  const pg=ep(iFile);
+  const pg=await ep(iFile);
   if(!checkPageLimit(pg, maxInspectPages(), 'ตรวจเอกสาร')) return;
   const p=ip(pg);if(p>0&&!isAdmin()&&!isOfficer()){showM('insp',p);return;}await _di();
 }
