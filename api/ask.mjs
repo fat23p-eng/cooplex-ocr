@@ -128,10 +128,6 @@ ${text}`;
     }
     console.log('Context sent to Claude:', context.length, 'chars');
     console.log('Context preview:', context.slice(0, 200));
-    // Debug: แสดง chunk ที่ match score สูงสุด 3 อันดับ
-    console.log('Top chunks:', allChunks.slice(0, 3).map(c => ({
-      score: c.score, preview: c.text.slice(0, 80)
-    })));
 
     // ── System Prompt ──────────────────────────────────
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
