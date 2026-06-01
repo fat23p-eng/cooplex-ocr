@@ -639,9 +639,9 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
       <div style="margin-bottom:14px">
         <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:7px;font-weight:600">ความละเอียด (DPI)</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap" id="dg">
-          <div class="rb2 ogo" onclick="sdpi(150,this)">150 — เร็ว/ประหยัด</div>
-          <div class="rb2 ong" onclick="sdpi(200,this)">200 — แนะนำ ✅</div>
-          <div class="rb2 opu" onclick="sdpi(300,this)">300 — แม่นยำสูง</div>
+          <div class="rb2 ogo" onclick="sdpi(72,this)">72 — เร็ว/ประหยัด</div>
+          <div class="rb2 ong" onclick="sdpi(100,this)">100 — แนะนำ ✅</div>
+          <div class="rb2 opu" onclick="sdpi(120,this)">120 — แม่นยำสูง</div>
         </div>
       </div>
       <div>
@@ -835,7 +835,7 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const PP_NUM='081-570-1313', PP_NAME='เรืองชัย โพนพุฒ', API_URL='/api/ocr';
-let fil='all', it='bylaw', iFile=null, oFiles=[], oDPI=200, oFmt='docx', oRun=false, oRes=[], pAct=null, pAmt=0, pBonus=0;
+let fil='all', it='bylaw', iFile=null, oFiles=[], oDPI=100, oFmt='docx', oRun=false, oRes=[], pAct=null, pAmt=0, pBonus=0;
 const uid=(()=>{let i=localStorage.getItem('cl_uid');if(!i){i='u_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);localStorage.setItem('cl_uid',i);}return i;})();
 
 // ═══ ROLES ═══
@@ -872,7 +872,7 @@ function doLogin() {
   if (matched) {
     localStorage.setItem('cl_role', matched);
     closeLoginModal();
-    updateRoleUI();
+    updateRoleUI(); loadQuota();
     toast('✅ เข้าสู่ระบบสำเร็จ — ' + ROLES[matched].label);
   } else {
     document.getElementById('loginErr').textContent = '❌ รหัสผ่านไม่ถูกต้อง';
@@ -880,7 +880,7 @@ function doLogin() {
 }
 function doLogout() {
   localStorage.removeItem('cl_role');
-  updateRoleUI();
+  updateRoleUI(); loadQuota();
   toast('👋 ออกจากระบบแล้ว');
 }
 function updateRoleUI() {
@@ -898,30 +898,52 @@ function updateRoleUI() {
   uqui();
 }
 
-// ═══ QUOTA ═══
-function tkey() { return 'q_' + new Date().toISOString().slice(0,10); }
-function gq() {
-  const role = getRoleObj();
-  const used  = parseInt(localStorage.getItem(tkey()) || '0');
-  const bonus = parseInt(localStorage.getItem('q_bonus') || '0');
-  const limit = role.askDay;
-  return { used, bonus, limit, left: Math.max(0, limit + bonus - used) };
+// ═══ QUOTA — ใช้ Vercel KV (ปลอดภัย ล้างไม่ได้) ═══
+let _quota = { ask: 5, inspect: 0, ocr: 0 }; // cache local
+
+async function loadQuota() {
+  if (isAdmin()) { document.getElementById('qNum').textContent = '∞'; return; }
+  try {
+    const r = await fetch('/api/quota', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: uid, action: 'get' })
+    });
+    const d = await r.json();
+    if (d.ok) { _quota = d.quota; uqui(); }
+  } catch(e) { console.warn('loadQuota failed:', e.message); }
 }
-function uq() {
-  const q = gq();
-  if (q.left <= 0) return false;
-  if (q.used < q.limit) localStorage.setItem(tkey(), q.used + 1);
-  else localStorage.setItem('q_bonus', Math.max(0, q.bonus - 1));
-  uqui(); return true;
+
+async function useQuota(type) {
+  if (isAdmin()) return true;
+  try {
+    const r = await fetch('/api/quota', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: uid, action: 'use', type })
+    });
+    const d = await r.json();
+    if (d.ok) { _quota = d.quota; uqui(); return true; }
+    return false; // quota empty
+  } catch(e) {
+    // fallback localStorage ถ้า KV ไม่ได้
+    console.warn('useQuota KV failed, fallback local');
+    return uqLocal();
+  }
 }
-function ab(n) {
-  localStorage.setItem('q_bonus', (parseInt(localStorage.getItem('q_bonus')||'0') + n));
-  uqui();
+
+// fallback local (กรณี KV ล่ม)
+function uqLocal() {
+  const key = 'q_' + new Date().toISOString().slice(0,10);
+  const used = parseInt(localStorage.getItem(key)||'0');
+  const lim  = getRoleObj().askDay;
+  if (used >= lim) return false;
+  localStorage.setItem(key, used + 1);
+  return true;
 }
+
 function uqui() {
-  const q = gq();
   const el = document.getElementById('qNum');
-  el.textContent = isAdmin() ? '∞' : q.left;
+  if (!el) return;
+  el.textContent = isAdmin() ? '∞' : (_quota.ask || 0);
 }
 
 // ── Page limit helpers ──────────────────────────
@@ -954,7 +976,7 @@ function updateInspectInfo(){
   const el=document.getElementById('inspectInfoTag');
   if(el) el.textContent=`${tl} • ${sl}`;
 }
-function sdpi(v,el){oDPI=v;const cls={150:'ogo',200:'ong',300:'opu'};document.querySelectorAll('#dg .rb2').forEach(b=>b.className='rb2');el.classList.add(cls[v]||'ong');uoc();}
+function sdpi(v,el){oDPI=v;const cls={72:'ogo',100:'ong',120:'opu'};document.querySelectorAll('#dg .rb2').forEach(b=>b.className='rb2');el.classList.add(cls[v]||'ong');uoc();}
 function sfmt(v,el){oFmt=v;document.querySelectorAll('#fg .rb2').forEach(b=>b.className='rb2');el.classList.add('oac');}
 function dov(e,id){e.preventDefault();document.getElementById(id)?.classList.add('drag');}
 function dlv(e,id){document.getElementById(id)?.classList.remove('drag');}
@@ -1061,7 +1083,8 @@ function dlRep(rs){
 // SEARCH
 async function doAsk(){
   const q=document.getElementById('askIn').value.trim();if(!q)return;
-  if(!uq()){showM('ask');return;}
+  const canAsk = await useQuota('ask');
+  if(!canAsk){ showM('ask'); return; }
   const btn=document.getElementById('askBtn');btn.disabled=true;
   const res=document.getElementById('askRes');
   // แสดง loading โดยไม่ scroll หน้า
@@ -1110,8 +1133,10 @@ async function p2i(fileObj,dv){
   if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
   // ใช้ cache ถ้ามี มิฉะนั้นอ่านใหม่ — .slice(0) เพื่อให้ pdfjs ใช้ได้ (detached buffer)
   const ab=cachedAb?cachedAb.slice(0):await f.arrayBuffer();
-  const pdf=await pdfjsLib.getDocument({data:ab}).promise;const sc=dv/72,imgs=[];
-  for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const vp=page.getViewport({scale:sc});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;imgs.push({pageNum:i,dataUrl:cv.toDataURL('image/png')});}
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  // cap scale ให้ได้ภาพกว้างไม่เกิน 1100px (ปลอดภัยต่อ Claude 5MB limit)
+  const MAX_W=1100;const sc=dv/72;const imgs=[];
+  for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const vp0=page.getViewport({scale:sc});const finalSc=vp0.width>MAX_W?sc*(MAX_W/vp0.width):sc;const vp=page.getViewport({scale:finalSc});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;imgs.push({pageNum:i,dataUrl:cv.toDataURL('image/jpeg',0.92)});}
   return imgs;
 }
 async function ocrP(du){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:du.split(',')[1]})});const d=await r.json();if(d.error)throw new Error(d.error);return d.text;}
@@ -1163,7 +1188,52 @@ function showM(act,amt=0){
   else{pBonus=0;document.getElementById('mt').textContent='💛 ชำระค่าบริการ';document.getElementById('md').textContent=`ค่าบริการ${act==='insp'?'ตรวจเอกสาร':'แปลง PDF'}`;document.getElementById('ppa').textContent='฿'+amt;document.getElementById('ppno').textContent='โอนแล้วกดยืนยัน — ระบบปลดล็อคทันที';}
   document.getElementById('ppn').textContent=PP_NUM;document.getElementById('ppna').textContent=PP_NAME;document.getElementById('modal').style.display='flex';
 }
-async function cd(){cm();if(pAct==='ask'){ab(pBonus);toast('✅ ขอบคุณ! เพิ่ม '+pBonus+' ครั้งแล้ว');setTimeout(doAsk,500);}else if(pAct==='insp'){toast('✅ ขอบคุณ! กำลังตรวจ...');setTimeout(_di,500);}else if(pAct==='ocr'){toast('✅ ขอบคุณ! กำลังแปลง...');setTimeout(_sOCR,500);}}
+async function cd(){
+  // ต้องมีสลิปก่อนถึงจะยืนยันได้
+  const slipImg = document.getElementById('slipPreview')?.querySelector('img');
+  if (!slipImg) { toast('⚠️ กรุณาอัปโหลดสลิปก่อน'); return; }
+
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true; btn.textContent = '⏳ กำลังตรวจสลิป...';
+
+  try {
+    // แปลง img src → base64
+    const canvas = document.createElement('canvas');
+    canvas.width = slipImg.naturalWidth; canvas.height = slipImg.naturalHeight;
+    canvas.getContext('2d').drawImage(slipImg, 0, 0);
+    const b64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+
+    const r = await fetch('/api/verify-slip', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        slipBase64:     b64,
+        userId:         uid,
+        action:         pAct,
+        expectedAmount: pAmt,
+      })
+    });
+    const d = await r.json();
+
+    if (!d.ok) {
+      toast('❌ ' + (d.reason || 'สลิปไม่ผ่านการตรวจสอบ'));
+      btn.disabled = false; btn.textContent = '✅ ยืนยัน — ปลดล็อคทันที';
+      return;
+    }
+
+    // ✅ สลิปผ่าน — ปลดล็อค
+    cm();
+    _quota = d.quota || _quota;
+    uqui();
+    toast('✅ ยืนยันสำเร็จ! ฿' + d.slip.amount + ' — ' + (d.slip.ref || d.slip.date));
+    if (pAct === 'ask')  setTimeout(doAsk,  500);
+    if (pAct === 'insp') setTimeout(_di,    500);
+    if (pAct === 'ocr')  setTimeout(_sOCR,  500);
+
+  } catch(e) {
+    toast('❌ ตรวจสลิปไม่ได้: ' + e.message);
+    btn.disabled = false; btn.textContent = '✅ ยืนยัน — ปลดล็อคทันที';
+  }
+}
 
 // ── Slip Upload ────────────────────────────────
 function handleSlipDrop(e) {
@@ -1194,7 +1264,7 @@ function handleSlipFile(files) {
   reader.readAsDataURL(file);
 }
 
-updateRoleUI();
+updateRoleUI(); loadQuota();
 </script>
 </body>
 </html>
