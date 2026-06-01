@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const { blobs } = await list({ limit: 100, token });
 
+      const coopKeyword = coopType === 'credit' ? 'เครดิต' : 'ออมทรัพย์';
       await Promise.all(blobs
         .filter(b => b.pathname.endsWith('.txt'))
         .map(async (blob) => {
@@ -36,20 +37,30 @@ export default async function handler(req, res) {
             const r = await fetch(blob.url, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!r.ok) return;
+            if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return; }
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
-            if (n.includes('template') || n.includes('ออมทรัพย์') || n.includes('เครดิต')) {
+            const isTemplate = n.includes('template') || n.includes(coopKeyword);
+            const isOtherTemplate = n.includes('template') &&
+              (coopType === 'credit' ? n.includes('ออมทรัพย์') : n.includes('เครดิต'));
+            if (isOtherTemplate) {
+              // ข้าม template ของประเภทอื่น
+              console.log('Skip other-type template:', blob.pathname);
+              return;
+            }
+            if (isTemplate) {
               templateText += text + '\n\n';
+              console.log('Template loaded:', blob.pathname, text.length, 'chars');
             } else if (n.includes('checklist')) {
               checklistText += text + '\n\n';
             } else {
               lawText += text + '\n\n';
+              console.log('Law loaded:', blob.pathname, text.length, 'chars');
             }
           } catch(e) { console.warn('Error:', blob.pathname, e.message); }
         })
       );
-      console.log('Template:', templateText.length, 'Law:', lawText.length);
+      console.log('Template:', templateText.length, 'Law:', lawText.length, 'Checklist:', checklistText.length);
     } catch (e) {
       console.warn('Blob fetch failed:', e.message);
     }
@@ -107,16 +118,16 @@ JSON format:
     const parts = [];
 
     if (templateText) {
-      parts.push(`[ร่างข้อบังคับมาตรฐาน ${typeLabel} ${sizeLabel}]\n${templateText.slice(0, 10000)}`);
+      parts.push(`[ร่างข้อบังคับมาตรฐาน ${typeLabel} ${sizeLabel}]\n${templateText.slice(0, 18000)}`);
     } else {
       parts.push(`[หมายเหตุ] ไม่พบ Template สำหรับ ${typeLabel} ${sizeLabel} ในฐานข้อมูล ให้ใช้ความรู้จาก พ.ร.บ.สหกรณ์แทน`);
     }
 
     if (lawText) {
-      parts.push(`[กฎหมายที่เกี่ยวข้อง]\n${lawText.slice(0, 8000)}`);
+      parts.push(`[กฎหมายที่เกี่ยวข้อง]\n${lawText.slice(0, 12000)}`);
     }
 
-    parts.push(`[ข้อบังคับที่ต้องการตรวจสอบ]\n${docText.slice(0, 15000)}`);
+    parts.push(`[ข้อบังคับที่ต้องการตรวจสอบ]\n${docText.slice(0, 20000)}`);
 
     const userPrompt = parts.join('\n\n---\n\n');
 
@@ -130,7 +141,7 @@ JSON format:
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 3000,
         system,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -140,15 +151,38 @@ JSON format:
     if (data.error) return res.status(500).json({ error: 'Claude: ' + data.error.message });
 
     const raw = data.content?.[0]?.text || '';
+    console.log('Raw response length:', raw.length, 'chars');
+    console.log('Raw preview:', raw.slice(0, 200));
     let result;
     try {
-      result = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    } catch {
-      result = {
-        score: 70, coopType: typeLabel, coopSize: sizeLabel,
-        summary: raw, templateCheck: [], complete: [],
-        conflict: [], missing: [], risk: [], suggest: [], expert: raw,
-      };
+      const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      result = JSON.parse(cleaned);
+    } catch(parseErr) {
+      console.error('JSON parse error:', parseErr.message);
+      console.error('Raw (first 500):', raw.slice(0, 500));
+      // ถ้า JSON ตัดกลางคัน ลอง extract เฉพาะส่วนที่สมบูรณ์
+      const jsonStart = raw.indexOf('{');
+      if (jsonStart !== -1) {
+        try {
+          // หา JSON ที่สมบูรณ์โดยนับ braces
+          let depth = 0, end = -1;
+          for (let i = jsonStart; i < raw.length; i++) {
+            if (raw[i] === '{') depth++;
+            else if (raw[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+          }
+          if (end !== -1) result = JSON.parse(raw.slice(jsonStart, end + 1));
+        } catch(e2) { console.error('Partial JSON also failed:', e2.message); }
+      }
+      if (!result) {
+        result = {
+          score: 60, coopType: typeLabel, coopSize: sizeLabel,
+          summary: 'ไม่สามารถประมวลผลได้ครบถ้วน กรุณาลองใหม่อีกครั้ง',
+          templateCheck: [], complete: [], conflict: [],
+          missing: [], risk: ['ไม่สามารถประมวลผล JSON ได้ครบถ้วน'],
+          suggest: ['กรุณาลองตรวจสอบใหม่อีกครั้ง'],
+          expert: raw.slice(0, 500),
+        };
+      }
     }
 
     return res.status(200).json({

@@ -43,7 +43,7 @@ export default async function handler(req, res) {
               type: 'image',
               source: {
                 type:       'base64',
-                media_type: 'image/png',
+                media_type: imageBase64.startsWith('/9j/') ? 'image/jpeg' : 'image/png',
                 data:       imageBase64,
               }
             },
@@ -55,9 +55,25 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    // กรณี Claude API error (rate limit, invalid key ฯลฯ)
     if (data.error) {
+      console.error('Claude API error:', data.error);
       return res.status(500).json({ error: data.error.message });
     }
+
+    // กรณี content ว่าง หรือ stop_reason ผิดปกติ
+    if (!data.content || !data.content[0] || !data.content[0].text) {
+      console.error('Empty response:', JSON.stringify(data).slice(0, 200));
+      return res.status(500).json({ error: 'Claude ไม่ส่งข้อความกลับมา (stop_reason: ' + (data.stop_reason||'unknown') + ')' });
+    }
+
+    // กรณี image ใหญ่เกิน Claude limit (~5MB base64)
+    const imageSizeKB = Math.round(imageBase64.length * 0.75 / 1024);
+    if (imageSizeKB > 4800) {
+      console.warn('Large image:', imageSizeKB, 'KB — อาจช้าหรือ error');
+    }
+
+    console.log('OCR page', pageNum, '— chars:', data.content[0].text.length, '| image:', imageSizeKB, 'KB | stop:', data.stop_reason);
 
     return res.status(200).json({
       text:    data.content[0].text,
@@ -65,6 +81,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+    console.error('OCR handler error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
