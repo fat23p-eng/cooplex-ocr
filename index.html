@@ -1080,29 +1080,37 @@ function ddo(e){e.preventDefault();dlv(e,'odz');aof(e.dataTransfer.files);}
 async function aof(fs){
   const newFiles=Array.from(fs).filter(f=>f.type==='application/pdf'&&!oFiles.find(x=>x.file.name===f.name));
   if(!newFiles.length)return;
-  // แสดง loading ก่อน
   document.getElementById('ocost').textContent='⏳ กำลังอ่าน PDF...';
+  if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
   for(const f of newFiles){
     try{
+      // cache arrayBuffer ไว้ใช้ซ้ำ — ไม่ต้องอ่านไฟล์ 2 รอบ (แก้บั๊กหน้าผิด)
       const ab=await f.arrayBuffer();
-      const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-      oFiles.push({file:f,pages:pdf.numPages});
+      const pdf=await pdfjsLib.getDocument({data:ab.slice(0)}).promise;
+      oFiles.push({file:f,pages:pdf.numPages,_ab:ab});
     }catch(e){
-      oFiles.push({file:f,pages:Math.max(1,Math.round(f.size/50000))});
+      console.warn('PDF read error:',f.name,e.message);
+      oFiles.push({file:f,pages:0,_ab:null});
     }
   }
   rofl();uoc();
 }
 function rof(n){oFiles=oFiles.filter(f=>f.file.name!==n);rofl();uoc();}
-function oep(f){return f.pages||1;}
+function oep(f){return f.pages>0?f.pages:0;}
 function op(pg){if(pg<=0)return 0;var t1=Math.min(pg,20),t2=Math.min(Math.max(pg-20,0),10),t3=Math.min(Math.max(pg-30,0),19),t4=Math.max(pg-49,0);return t1*5+t2*3+t3*2+t4*1;}
 function uoc(){const pg=oFiles.reduce((s,f)=>s+oep(f),0),c=oFiles.reduce((s,f)=>s+op(oep(f)),0);document.getElementById('ocost').textContent=pg>0?`${pg} หน้า / ฿${c}`:'0 หน้า / ฿0';}
 function rofl(){document.getElementById('ofl').innerHTML=oFiles.map(f=>`<div class="fitem"><div class="fi-ico">📋</div><div class="fi-name">${f.file.name}</div><span class="fi-pg">${oep(f)} หน้า</span><span class="fi-pr ${op(oep(f))===0?'fp-fr':'fp-pd'}">${op(oep(f))===0?'ฟรี':'฿'+op(oep(f))}</span><button class="fi-rm" onclick="rof('${f.file.name.replace(/'/g,"\\'")}')">✕</button></div>`).join('');}
 function olog(m,t=''){const b=document.getElementById('olbox');const d=document.createElement('div');d.className=t;d.textContent=m;b.appendChild(d);b.scrollTop=b.scrollHeight;}
 function osp(p,s){document.getElementById('opb').style.width=p+'%';document.getElementById('opst').textContent=s;}
-async function p2i(file,dv){
+async function p2i(fileObj,dv){
+  // ใช้ fileObj ที่เป็น {file, pages, _ab} จาก oFiles
+  // ถ้าส่งมาเป็น File object ตรง ให้ wrap ก่อน
+  const f=fileObj.file||fileObj;
+  const cachedAb=fileObj._ab||null;
   if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
-  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const sc=dv/72,imgs=[];
+  // ใช้ cache ถ้ามี มิฉะนั้นอ่านใหม่ — .slice(0) เพื่อให้ pdfjs ใช้ได้ (detached buffer)
+  const ab=cachedAb?cachedAb.slice(0):await f.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:ab}).promise;const sc=dv/72,imgs=[];
   for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const vp=page.getViewport({scale:sc});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;imgs.push({pageNum:i,dataUrl:cv.toDataURL('image/png')});}
   return imgs;
 }
@@ -1120,7 +1128,7 @@ async function _sOCR(){
   for(let fi=0;fi<oFiles.length;fi++){
     const file=oFiles[fi];olog(`\n📄 [${fi+1}/${oFiles.length}] ${file.file.name}`,'info');osp((fi/oFiles.length)*100,`โหลด ${file.file.name}...`);
     try{
-      const imgs=await p2i(file.file,oDPI);olog(`   พบ ${imgs.length} หน้า`,'ok');const pages=[];
+      const imgs=await p2i(file,oDPI);olog(`   พบ ${imgs.length} หน้า`,'ok');const pages=[];
       for(let pi=0;pi<imgs.length;pi++){
         const{pageNum,dataUrl}=imgs[pi];osp(((fi+(pi+1)/imgs.length)/oFiles.length)*100,`${file.name} — Claude อ่านหน้า ${pageNum}/${imgs.length}`);olog(`   🤖 หน้า ${pageNum}/${imgs.length}...`,'');
         try{const t=await ocrP(dataUrl);pages.push({pageNum,text:t});olog(`      ✅ "${t.slice(0,55).replace(/\n/g,' ')}..."`,'ok');}
