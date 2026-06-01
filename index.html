@@ -841,13 +841,22 @@ const uid=(()=>{let i=localStorage.getItem('cl_uid');if(!i){i='u_'+Date.now()+'_
 // ═══ ROLES ═══
 // เปลี่ยน password ได้ตรงนี้
 const ROLES = {
-  admin:   { pass: 'admin2025',   label: '👑 Admin',   askDay: 99999, inspectPages: 99999, ocrPages: 99999 },
-  officer: { pass: 'officer2025', label: '🏅 Officer', askDay: 20,    inspectPages: 10,    ocrPages: 10    },
-  guest:   { pass: null,          label: '👤 Guest',   askDay: 5,     inspectPages: 2,     ocrPages: 2     },
+  admin:   { label: '👑 Admin',   askDay: 99999, inspectPages: 99999, ocrPages: 99999 },
+  officer: { label: '🏅 Officer', askDay: 20,    inspectPages: 10,    ocrPages: 10    },
+  guest:   { label: '👤 Guest',   askDay: 5,     inspectPages: 2,     ocrPages: 2     },
 };
+// ไม่มีรหัสผ่านใน frontend — ตรวจที่ backend เท่านั้น
 
 function getRole() {
   const saved = localStorage.getItem('cl_role');
+  const exp   = parseInt(localStorage.getItem('cl_exp') || '0');
+  // ถ้า token หมดอายุ → logout อัตโนมัติ
+  if (saved && saved !== 'guest' && exp && Date.now() > exp) {
+    localStorage.removeItem('cl_role');
+    localStorage.removeItem('cl_token');
+    localStorage.removeItem('cl_exp');
+    return 'guest';
+  }
   return ROLES[saved] ? saved : 'guest';
 }
 function getRoleObj() { return ROLES[getRole()]; }
@@ -863,23 +872,37 @@ function showLoginModal() {
 function closeLoginModal() {
   document.getElementById('loginModal').style.display = 'none';
 }
-function doLogin() {
+async function doLogin() {
   const pass = document.getElementById('loginPass').value.trim();
-  let matched = null;
-  for (const [role, obj] of Object.entries(ROLES)) {
-    if (obj.pass && obj.pass === pass) { matched = role; break; }
+  if (!pass) return;
+  const btn = document.querySelector('#loginModal .mbconf');
+  btn.disabled = true; btn.textContent = '⏳ กำลังตรวจสอบ...';
+  document.getElementById('loginErr').textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ pass })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      localStorage.setItem('cl_role',  d.role);
+      localStorage.setItem('cl_token', d.token);
+      localStorage.setItem('cl_exp',   d.exp);
+      closeLoginModal();
+      updateRoleUI(); loadQuota();
+      toast('✅ เข้าสู่ระบบสำเร็จ — ' + ROLES[d.role].label);
+    } else {
+      document.getElementById('loginErr').textContent = '❌ ' + (d.error || 'รหัสผ่านไม่ถูกต้อง');
+    }
+  } catch(e) {
+    document.getElementById('loginErr').textContent = '❌ เชื่อมต่อไม่ได้: ' + e.message;
   }
-  if (matched) {
-    localStorage.setItem('cl_role', matched);
-    closeLoginModal();
-    updateRoleUI(); loadQuota();
-    toast('✅ เข้าสู่ระบบสำเร็จ — ' + ROLES[matched].label);
-  } else {
-    document.getElementById('loginErr').textContent = '❌ รหัสผ่านไม่ถูกต้อง';
-  }
+  btn.disabled = false; btn.textContent = '🔐 เข้าสู่ระบบ';
 }
 function doLogout() {
   localStorage.removeItem('cl_role');
+  localStorage.removeItem('cl_token');
+  localStorage.removeItem('cl_exp');
   updateRoleUI(); loadQuota();
   toast('👋 ออกจากระบบแล้ว');
 }
