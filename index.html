@@ -351,8 +351,8 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
         <div class="hb-stat"><div class="hb-stat-num">99%</div><div class="hb-stat-lbl">ความแม่นยำ OCR</div></div>
       </div>
       <div class="hb-cta">
-        <button class="cta-main" onclick="switchTab('inspect',document.querySelectorAll('.tb')[0]);scrollToTabs()">🔎 เริ่มตรวจเอกสาร</button>
-        <button class="cta-sec" onclick="switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs()">🔍 ค้นหากฎหมาย</button>
+        <button class="cta-main" onclick="switchTab('inspect',document.querySelector('.tb[onclick*=inspect]'));scrollToTabs()">🔎 เริ่มตรวจเอกสาร</button>
+        <button class="cta-sec" onclick="switchTab('search',document.querySelector('.tb[onclick*=search]'));scrollToTabs()">🔍 ค้นหากฎหมาย</button>
         <a href="https://fat23p-eng.github.io/BylawsTemBigCoop/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:14px 22px;border-radius:12px;font-size:14px;font-weight:700;font-family:'Sarabun',sans-serif;text-decoration:none;transition:all .2s;backdrop-filter:blur(4px);" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">📝 จัดทำร่างข้อบังคับสหกรณ์ออมทรัพย์ <span style="background:var(--amber3);color:var(--navy);padding:2px 8px;border-radius:20px;font-size:12px;margin-left:4px;">฿20</span></a>
       </div>
     </div>
@@ -469,7 +469,7 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
 
 <!-- SUB BANNERS -->
 <div class="sub-banners">
-  <div class="sb-card sb1" onclick="switchTab('inspect',document.querySelectorAll('.tb')[0]);scrollToTabs()">
+  <div class="sb-card sb1" onclick="switchTab('inspect',document.querySelector('.tb[onclick*=inspect]'));scrollToTabs()">
     <div class="sb-arrow">→</div>
     <span class="sb-ico">🔎</span>
     <div class="sb-title">ตรวจข้อบังคับ/ระเบียบ</div>
@@ -479,14 +479,14 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
       📝 ร่างข้อบังคับ ฿20
     </a>
   </div>
-  <div class="sb-card sb2" onclick="switchTab('search',document.querySelectorAll('.tb')[1]);scrollToTabs()">
+  <div class="sb-card sb2" onclick="switchTab('search',document.querySelector('.tb[onclick*=search]'));scrollToTabs()">
     <div class="sb-arrow">→</div>
     <span class="sb-ico">🔍</span>
     <div class="sb-title">ค้นหากฎหมาย</div>
     <div class="sb-desc">พ.ร.บ. กฎกระทรวง นายทะเบียนสหกรณ์ ตอบทันที</div>
     <span class="sb-badge">ฟรี 5 ครั้ง/วัน</span>
   </div>
-  <div class="sb-card sb3" onclick="switchTab('ocr',document.querySelectorAll('.tb')[2]);scrollToTabs()">
+  <div class="sb-card sb3" onclick="switchTab('ocr',document.querySelector('.tb[onclick*=ocr]'));scrollToTabs()">
     <div class="sb-arrow">→</div>
     <span class="sb-ico">📄</span>
     <div class="sb-title">แปลง PDF สแกน → Word</div>
