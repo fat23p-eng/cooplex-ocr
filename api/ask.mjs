@@ -31,6 +31,9 @@ export default async function handler(req, res) {
       const { blobs } = await list(listOpts);
       console.log('Blob files:', blobs.length);
 
+      console.log('All blobs:', blobs.map(b => b.pathname).join(', '));
+      const txtBlobs = blobs.filter(b => b.pathname.endsWith('.txt'));
+      console.log('TXT blobs:', txtBlobs.length, txtBlobs.map(b => b.pathname).join(', '));
       if (blobs.length === 0) {
         console.warn('No blobs found — ตรวจสอบ BLOB_READ_WRITE_TOKEN หรือ OIDC connection');
       }
@@ -53,7 +56,11 @@ export default async function handler(req, res) {
                 return '';
               }
               const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              console.log('Loaded:', blob.pathname, text.length, 'chars', text.slice(0,50));
+              if (!text || text.trim().length === 0) {
+                console.warn('Empty file:', blob.pathname);
+                return '';
+              }
               return '[' + blob.pathname + ']\n' + text;
             } catch(e) {
               console.warn('Error:', blob.pathname, e.message);
