@@ -22,48 +22,23 @@ export default async function handler(req, res) {
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-
-      // ลอง knowledge_public store ก่อน ถ้าไม่มีค่อยใช้ default
-      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      // knowledge_public เป็น Public store ใช้ storeId อย่างเดียว ไม่ต้องใช้ token
       const storeId = process.env.knowledge_public_STORE_ID;
-
-      // ใช้ token ของ knowledge_public store
-      const kpToken = process.env.knowledge_public_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
-      const listOpts = { limit: 100 };
-      if (storeId) listOpts.storeId = storeId;
-      if (kpToken) listOpts.token = kpToken;
-
-      console.log('Using storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
-      console.log('Using token:', kpToken ? kpToken.slice(0,20)+'...' : 'NONE');
-      const { blobs } = await list(listOpts);
+      console.log('storeId:', storeId ? storeId.slice(0,20)+'...' : 'NOT SET');
+      const { blobs } = await list({ limit: 100, storeId });
       console.log('Blob files:', blobs.length);
-
-      console.log('All blobs:', blobs.map(b => b.pathname).join(', '));
-      const txtBlobs = blobs.filter(b => b.pathname.endsWith('.txt'));
-      console.log('TXT blobs:', txtBlobs.length, txtBlobs.map(b => b.pathname).join(', '));
-      if (blobs.length === 0) {
-        console.warn('No blobs found — ตรวจสอบ BLOB_READ_WRITE_TOKEN หรือ OIDC connection');
-      }
 
       const contents = await Promise.all(
         blobs
           .filter(b => b.pathname.endsWith('.txt'))
           .map(async (blob) => {
             try {
-              // ลอง fetch โดยไม่ต้องใช้ Authorization header ก่อน (OIDC)
-              // OIDC — fetch โดยตรงไม่ต้องใช้ token
-              let r = await fetch(blob.url);
-              if (!r.ok) {
-                console.warn('Failed:', blob.pathname, r.status);
-                return '';
-              }
+              // Public blob — fetch ตรงๆ ได้เลย ไม่ต้อง auth
+              const r = await fetch(blob.url);
+              if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
               const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars', text.slice(0,50));
-              if (!text || text.trim().length === 0) {
-                console.warn('Empty file:', blob.pathname);
-                return '';
-              }
-              return '[' + blob.pathname + ']\n' + text;
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
             } catch(e) {
               console.warn('Error:', blob.pathname, e.message);
               return '';
