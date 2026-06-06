@@ -50,12 +50,23 @@ export default async function handler(req, res) {
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
 
+            // ── จำแนกประเภทไฟล์ ──────────────────────────────
             const isChecklist = n.includes('checklist');
-            // template คือไฟล์ที่มีคำว่า template ในชื่อ
-            const isTemplateFile = n.includes('template');
-            // ตรงประเภทที่เลือก = ชื่อมี keyword ของประเภทนั้น
+
+            // ระเบียบนายทะเบียน = ระเบียบ_1 ถึง ระเบียบ_36 (ตัวเลข)
+            const matraNum = n.match(/ระเบียบ_(\d+)/);
+            const isLawReg = matraNum && parseInt(matraNum[1]) <= 36;
+
+            // ร่างระเบียบสหกรณ์ = ระเบียบ_xxx (ไม่ใช่ตัวเลข) หรือมีคำว่า template
+            const isDraftReg = n.includes('ระเบียบ') && !isLawReg;
+
+            // กฎหมายอื่น = คำแนะนำ, ประกาศ, พรบ, กฎกระทรวง
+            const isLawOther = n.includes('คำแนะนำ') || n.includes('ประกาศ') ||
+                               n.includes('พระราชบัญญัติ') || n.includes('กฎกระทรวง') ||
+                               n.includes('2542');
+
+            // ตรงประเภทที่เลือก
             const isMatchType = matchKeywords.some(k => n.includes(k));
-            // ประเภทอื่น = ชื่อมี keyword ของประเภทตรงข้าม
             const isOtherType = otherKeywords.some(k => n.includes(k));
 
             if (isChecklist) {
@@ -63,19 +74,22 @@ export default async function handler(req, res) {
               return;
             }
 
-            if (isTemplateFile) {
-              if (isOtherType && !isMatchType) {
-                // ข้าม template ของประเภทอื่นชัดเจน
-                console.log('Skip other-type template:', blob.pathname);
-                return;
-              }
-              // ถ้าชื่อไม่มี keyword ใดเลย → โหลดไว้ก่อน (กัน template ที่ชื่อไม่บ่งบอกประเภท)
+            if (isDraftReg) {
+              // ร่างระเบียบสหกรณ์ → templateText ทุกประเภท (สาระสำคัญเหมือนกัน ต่างแค่ชื่อ)
+              templateText += text + '\n\n';
+              console.log('Draft loaded:', blob.pathname, text.length, 'chars');
+            } else if (isLawReg || isLawOther) {
+              // ระเบียบนายทะเบียน + กฎหมายอื่น → lawText เสมอ
+              lawText += text + '\n\n';
+              console.log('Law loaded:', blob.pathname, text.length, 'chars');
+            } else if (n.includes('template')) {
+              // ไฟล์ template ที่ชื่อขึ้นต้นด้วย template → templateText ทุกประเภท
               templateText += text + '\n\n';
               console.log('Template loaded:', blob.pathname, text.length, 'chars');
             } else {
-              // ไฟล์กฎหมาย/ระเบียบ — โหลดทุกไฟล์ ไม่ต้องกรองตามประเภท
+              // ไฟล์อื่นๆ → lawText
               lawText += text + '\n\n';
-              console.log('Law loaded:', blob.pathname, text.length, 'chars');
+              console.log('Other loaded:', blob.pathname, text.length, 'chars');
             }
           } catch(e) { console.warn('Error:', blob.pathname, e.message); }
         })
