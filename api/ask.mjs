@@ -78,19 +78,28 @@ ${text}`;
         keywords = [...keywords, 'มาตรา 41', 'สมาชิกสมทบ', 'ผู้ตรวจสอบกิจการ'];
       }
       if (question.includes('เงินกู้') || question.includes('การให้กู้') || question.includes('สินเชื่อ')) {
-        keywords = [...keywords, 'เงินกู้', 'การให้เงินกู้', 'คำแนะนำนายทะเบียน', 'รับผิดชอบ', 'เป็นธรรม', 'ออมทรัพย์'];
+        keywords = [...keywords, 'เงินกู้', 'การให้เงินกู้', 'หลักเกณฑ์การให้เงินกู้', 'คำแนะนำนายทะเบียน', 'รับผิดชอบ', 'เป็นธรรม', 'ความสามารถในการชำระหนี้'];
       }
-      if (question.includes('รับผิดชอบและเป็นธรรม') || question.includes('รับผิดชอบ')) {
-        keywords = [...keywords, 'คำแนะนำนายทะเบียนสหกรณ์', 'รับผิดชอบ', 'เป็นธรรม', 'เงินกู้'];
+      if (question.includes('รับผิดชอบและเป็นธรรม') || question.includes('รับผิดชอบ') || question.includes('เป็นธรรม')) {
+        keywords = [...keywords, 'คำแนะนำนายทะเบียนสหกรณ์', 'หลักเกณฑ์การให้เงินกู้', 'รับผิดชอบ', 'เป็นธรรม', 'เงินกู้'];
       }
       if (question.includes('ดอกเบี้ย') || question.includes('อัตราดอกเบี้ย')) {
         keywords = [...keywords, 'ดอกเบี้ย', 'อัตราดอกเบี้ย', 'เงินกู้', 'คำแนะนำนายทะเบียน'];
+      }
+      if (question.includes('ชำระหนี้') || question.includes('ความสามารถ') || question.includes('เงินเหลือสุทธิ')) {
+        keywords = [...keywords, 'ความสามารถในการชำระหนี้', 'เงินเหลือสุทธิ', 'หลักเกณฑ์การให้เงินกู้', 'คำแนะนำนายทะเบียน'];
+      }
+      if (question.includes('หนี้เรื้อรัง') || question.includes('ปรับโครงสร้างหนี้') || question.includes('ผิดนัด')) {
+        keywords = [...keywords, 'หนี้เรื้อรัง', 'ปรับปรุงโครงสร้างหนี้', 'ผิดนัดชำระหนี้', 'คำแนะนำนายทะเบียน'];
+      }
+      if (question.includes('ข้อมูลเครดิต') || question.includes('เครดิตบูโร')) {
+        keywords = [...keywords, 'ข้อมูลเครดิต', 'บริษัท ข้อมูลเครดิตแห่งชาติ', 'เงินกู้'];
       }
       if (question.includes('ประกาศ') || question.includes('ประกาศนายทะเบียน')) {
         keywords = [...keywords, 'ประกาศ', 'ประกาศนายทะเบียนสหกรณ์', 'นายทะเบียนสหกรณ์'];
       }
       if (question.includes('คำแนะนำ') || question.includes('คำแนะนำนายทะเบียน')) {
-        keywords = [...keywords, 'คำแนะนำ', 'คำแนะนำนายทะเบียนสหกรณ์', 'นายทะเบียนสหกรณ์'];
+        keywords = [...keywords, 'คำแนะนำ', 'คำแนะนำนายทะเบียนสหกรณ์', 'หลักเกณฑ์การให้เงินกู้'];
       }
 
       for (const block of fileBlocks) {
@@ -104,16 +113,25 @@ ${text}`;
         let fileBonus = 0;
         const fn = fileName.toLowerCase();
         if (fn.includes('พระราชบัญญัติ') || fn.includes('2542')) fileBonus = 20;
-        else if (fn.includes('กฎกระทรวง')) fileBonus = 10;
-        else if (fn.includes('คำแนะนำ') || fn.includes('ประกาศ')) fileBonus = 8;
-        else if (/ระเบียบ_(\d+)/.test(fn) && parseInt(fn.match(/ระเบียบ_(\d+)/)[1]) <= 36) {
-          // ระเบียบ_1 ถึง ระเบียบ_36 = ระเบียบนายทะเบียนสหกรณ์ (กฎหมาย)
+        else if (/^\d+-กฎกระทรวง/.test(fn) || fn.includes('กฎกระทรวง')) {
+          // รูปแบบ: 1-กฎกระทรวง_xxx หรือ กฎกระทรวง_xxx
+          fileBonus = 10;
+        } else if (/^\d+_คำแนะนำ/.test(fn) || fn.includes('คำแนะนำ')) {
+          // รูปแบบ: 1_คำแนะนำ_xxx หรือ คำแนะนำ_xxx
           fileBonus = 8;
-        } else if (fn.includes('ระเบียบ') && !/ระเบียบ_\d+/.test(fn)) {
-          // ระเบียบ_ออมทรัพย์ ฯลฯ = ร่างระเบียบสหกรณ์ (template) — ไม่ boost
+        } else if (/^\d+_ประกาศ/.test(fn) || fn.includes('ประกาศ')) {
+          // รูปแบบ: 1_ประกาศ_xxx หรือ ประกาศ_xxx
+          fileBonus = 8;
+        } else if (/^\d+-/.test(fn) && !fn.includes('ระเบียบ')) {
+          // รูปแบบ: 16-การบัญชี_xxx = ระเบียบนายทะเบียนสหกรณ์
+          fileBonus = 8;
+        } else if (/^\d+-ระเบียบ/.test(fn) || /ระเบียบ_\d+/.test(fn)) {
+          // ระเบียบนายทะเบียนที่มีเลขกำกับ
+          fileBonus = 8;
+        } else if (fn.includes('ระเบียบ') && !/^\d+/.test(fn)) {
+          // ระเบียบ_ออมทรัพย์ ฯลฯ = ร่างระเบียบสหกรณ์ — ไม่ boost
           fileBonus = 0;
-        }
-        else if (fn.includes('checklist')) fileBonus = 3;
+        } else if (fn.includes('checklist')) fileBonus = 3;
 
         const chunks = splitBySection(fileText);
         for (const chunk of chunks) {

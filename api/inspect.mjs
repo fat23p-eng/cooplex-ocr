@@ -53,17 +53,17 @@ export default async function handler(req, res) {
             // ── จำแนกประเภทไฟล์ ──────────────────────────────
             const isChecklist = n.includes('checklist');
 
-            // ระเบียบนายทะเบียน = ระเบียบ_1 ถึง ระเบียบ_36 (ตัวเลข)
-            const matraNum = n.match(/ระเบียบ_(\d+)/);
-            const isLawReg = matraNum && parseInt(matraNum[1]) <= 36;
+            // ระเบียบนายทะเบียน = ขึ้นต้นด้วยตัวเลข เช่น 16-การบัญชี, 19-ระเบียบ
+            const isLawReg = /^\d+-/.test(n) && !n.includes('กฎกระทรวง');
 
-            // ร่างระเบียบสหกรณ์ = ระเบียบ_xxx (ไม่ใช่ตัวเลข) หรือมีคำว่า template
-            const isDraftReg = n.includes('ระเบียบ') && !isLawReg;
+            // กฎหมายอื่น = คำแนะนำ, ประกาศ, พรบ, กฎกระทรวง (รองรับทั้ง 1_คำแนะนำ และ คำแนะนำ)
+            const isLawOther = /^\d+_คำแนะนำ/.test(n) || n.includes('คำแนะนำ') ||
+                               /^\d+_ประกาศ/.test(n) || n.includes('ประกาศ') ||
+                               /^\d+-กฎกระทรวง/.test(n) || n.includes('กฎกระทรวง') ||
+                               n.includes('พระราชบัญญัติ') || n.includes('2542');
 
-            // กฎหมายอื่น = คำแนะนำ, ประกาศ, พรบ, กฎกระทรวง
-            const isLawOther = n.includes('คำแนะนำ') || n.includes('ประกาศ') ||
-                               n.includes('พระราชบัญญัติ') || n.includes('กฎกระทรวง') ||
-                               n.includes('2542');
+            // ร่างระเบียบสหกรณ์ = ระเบียบ_xxx ที่ไม่มีตัวเลขนำหน้า
+            const isDraftReg = n.includes('ระเบียบ') && !isLawReg && !isLawOther;
 
             // ตรงประเภทที่เลือก
             const isMatchType = matchKeywords.some(k => n.includes(k));
