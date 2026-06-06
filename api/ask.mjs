@@ -23,11 +23,16 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
 
-      // รองรับทั้ง OIDC (ใหม่) และ token เดิม
+      // ลอง knowledge_public store ก่อน ถ้าไม่มีค่อยใช้ default
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      const listOpts = token ? { limit: 100, token } : { limit: 100 };
+      const storeId = process.env.knowledge_public_STORE_ID || process.env.BLOB_STORE_ID;
 
-      console.log('Using token:', token ? 'YES (READ_WRITE_TOKEN)' : 'NO (OIDC)');
+      const listOpts = { limit: 100 };
+      if (token) listOpts.token = token;
+      if (storeId) listOpts.storeId = storeId;
+
+      console.log('Using storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
+      console.log('Using token:', token ? 'YES' : 'NO (OIDC)');
       const { blobs } = await list(listOpts);
       console.log('Blob files:', blobs.length);
 
