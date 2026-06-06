@@ -23,32 +23,36 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      console.log('token:', token ? token.slice(0,20)+'...' : 'NOT SET');
-      const { blobs } = await list({ limit: 100, token });
-      console.log('Blob files:', blobs.length);
+      if (!token) {
+        console.warn('BLOB_READ_WRITE_TOKEN is not set — skipping knowledge fetch');
+      } else {
+        console.log('Blob token:', token.slice(0,20)+'...');
+        // list() ใช้ token สำหรับ auth เท่านั้น ไม่ต้องส่งใน fetch header
+        const { blobs } = await list({ token });
+        console.log('Blob files found:', blobs.length);
 
-      const contents = await Promise.all(
-        blobs
-          .filter(b => b.pathname.endsWith('.txt'))
-          .map(async (blob) => {
-            try {
-              const r = await fetch(blob.url, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-              });
-              if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
-              const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars');
-              return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
-            } catch(e) {
-              console.warn('Error:', blob.pathname, e.message);
-              return '';
-            }
-          })
-      );
-      knowledgeText = contents.filter(Boolean).join('\n\n');
-      console.log('Total knowledge chars:', knowledgeText.length);
+        const contents = await Promise.all(
+          blobs
+            .filter(b => b.pathname.endsWith('.txt'))
+            .map(async (blob) => {
+              try {
+                // ✅ ไม่ใส่ Authorization header — Vercel Blob URL มี signed token อยู่แล้ว
+                const r = await fetch(blob.url);
+                if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status, r.statusText); return ''; }
+                const text = await r.text();
+                console.log('Loaded:', blob.pathname, text.length, 'chars');
+                return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
+              } catch(e) {
+                console.warn('Blob read error:', blob.pathname, e.message);
+                return '';
+              }
+            })
+        );
+        knowledgeText = contents.filter(Boolean).join('\n\n');
+        console.log('Total knowledge chars:', knowledgeText.length);
+      }
     } catch (e) {
-      console.warn('Blob fetch failed:', e.message);
+      console.warn('Blob import/list failed:', e.message);
     }
 
     // ── ค้นหาเฉพาะส่วนที่เกี่ยวข้อง ──────────────────
