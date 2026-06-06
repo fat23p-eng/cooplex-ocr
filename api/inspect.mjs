@@ -9,13 +9,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { docText, coopType, coopSize } = req.body;
+    const { docText, docType, coopType, coopSize } = req.body;
     if (!docText) return res.status(400).json({ error: 'Missing docText' });
 
-    // ── ประเภทสหกรณ์ ──────────────────────────────────
+    // ── ประเภทเอกสารและสหกรณ์ ───────────────────────────
+    const docLabel  = docType === 'regulation' ? 'ระเบียบ' : 'ข้อบังคับ';
+
     const typeLabel = {
-      saving: 'สหกรณ์ออมทรัพย์',
-      credit: 'สหกรณ์เครดิตยูเนียน',
+      saving:  'สหกรณ์ออมทรัพย์',
+      credit:  'สหกรณ์เครดิตยูเนียน',
+      service: 'สหกรณ์บริการ',
+      agri:    'สหกรณ์การเกษตร',
     }[coopType || 'saving'];
 
     const sizeLabel = coopSize === 'large'
@@ -23,93 +27,96 @@ export default async function handler(req, res) {
       : 'ขนาดเล็ก (ทุนดำเนินงาน < 5,000 ล้านบาท)';
 
     // ── ดึง Knowledge จาก Vercel Blob (Server-side with token) ──
-    let templateText = '', lawText = '', checklistText = '';
+    let templateText = '', lawText = '';
     try {
       const { list } = await import('@vercel/blob');
-      // ✅ ใช้ token (ไม่ใช่ storeId) — ชื่อตาม store "knowledge-public"
+      // ✅ ใช้ token (ไม่ใช่ storeId)
       const token = process.env.knowledge_public_READ_WRITE_TOKEN
                  || process.env.BLOB_READ_WRITE_TOKEN;
       if (!token) {
-        const blobKeys = Object.keys(process.env).filter(k =>
-          k.toLowerCase().includes('blob') || k.toLowerCase().includes('knowledge')
-        );
-        console.warn('Blob token not found. Blob-related env vars:', blobKeys.join(', ') || 'none');
-        // skip blob — ใช้ความรู้จาก prompt แทน
+        console.warn('Blob token not set');
       } else {
-      console.log('Inspect blob token:', token.slice(0,20)+'...');
-      const { blobs } = await list({ token });
+        const { blobs } = await list({ token });
+        const txtBlobs = blobs.filter(b => b.pathname.endsWith('.txt'));
+        console.log('Inspect blob files:', txtBlobs.length);
 
-      // keyword ตาม coopType ที่ผู้ใช้เลือก
-      const typeKeywords = {
-        saving:  ['ออมทรัพย์', 'saving', 'osm'],
-        credit:  ['เครดิต', 'credit', 'cu'],
-      };
-      const matchKeywords = typeKeywords[coopType] || typeKeywords.saving;
-      const otherKeywords = coopType === 'credit'
-        ? typeKeywords.saving
-        : typeKeywords.credit;
-
-      await Promise.all(blobs
-        .filter(b => b.pathname.endsWith('.txt'))
-        .map(async (blob) => {
+        // โหลดทุกไฟล์พร้อมกัน
+        const loaded = await Promise.all(txtBlobs.map(async (blob) => {
           try {
-            const r = await fetch(blob.url); // Public store — no auth header needed
-            if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return; }
+            const r = await fetch(blob.url);
+            if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return null; }
             const text = await r.text();
-            const n = blob.pathname.toLowerCase();
+            return { name: blob.pathname.toLowerCase(), text };
+          } catch(e) { console.warn('Error:', blob.pathname, e.message); return null; }
+        }));
 
-            // ── จำแนกประเภทไฟล์ ──────────────────────────────
-            const isChecklist = n.includes('checklist');
+        // ── จำแนกและ filter ตาม coopType + docType ──────────────
+        // keyword ของแต่ละประเภทสหกรณ์
+        const coopKeywords = {
+          saving:  ['ออมทรัพย์', 'saving'],
+          credit:  ['เครดิต', 'credit'],
+          service: ['บริการ', 'service'],
+          agri:    ['เกษตร', 'agri'],
+        };
+        const myKeywords    = coopKeywords[coopType] || coopKeywords.saving;
+        const otherKeywords = Object.entries(coopKeywords)
+          .filter(([k]) => k !== coopType)
+          .flatMap(([, v]) => v);
 
-            // ระเบียบนายทะเบียน = ขึ้นต้นด้วยตัวเลข เช่น 16-การบัญชี, 19-ระเบียบ
-            const isLawReg = /^\d+-/.test(n) && !n.includes('กฎกระทรวง');
+        for (const f of loaded) {
+          if (!f) continue;
+          const n    = f.name;
+          const text = f.text;
 
-            // กฎหมายอื่น = คำแนะนำ, ประกาศ, พรบ, กฎกระทรวง (รองรับทั้ง 1_คำแนะนำ และ คำแนะนำ)
-            const isLawOther = /^\d+_คำแนะนำ/.test(n) || n.includes('คำแนะนำ') ||
-                               /^\d+_ประกาศ/.test(n) || n.includes('ประกาศ') ||
-                               /^\d+-กฎกระทรวง/.test(n) || n.includes('กฎกระทรวง') ||
-                               n.includes('พระราชบัญญัติ') || n.includes('2542');
+          // ประเภทไฟล์
+          const isPRB      = n.includes('พระราชบัญญัติ') || n.includes('2542');
+          const isMinReg   = /^\d+-กฎกระทรวง/.test(n) || (n.includes('กฎกระทรวง') && !/^\d+_/.test(n));
+          const isNotice   = /^\d+_คำแนะนำ/.test(n) || (n.includes('คำแนะนำ') && !/template/.test(n));
+          const isAnnounce = /^\d+_ประกาศ/.test(n)   || (n.includes('ประกาศ')   && !/template/.test(n));
+          const isRegNT    = /^\d+-/.test(n) && !isMinReg && !isNotice && !isAnnounce;  // ระเบียบนายทะเบียน
+          const isDraftReg = n.includes('ระเบียบ') && !isRegNT && !isMinReg;            // ร่างระเบียบสหกรณ์
+          const isTemplate = n.includes('template');
+          const isOtherType = !isPRB && !isMinReg && !isNotice && !isAnnounce && !isRegNT
+                           && otherKeywords.some(k => n.includes(k));
 
-            // ร่างระเบียบสหกรณ์ = ระเบียบ_xxx ที่ไม่มีตัวเลขนำหน้า
-            const isDraftReg = n.includes('ระเบียบ') && !isLawReg && !isLawOther;
+          // ข้ามไฟล์ของสหกรณ์ประเภทอื่น (เฉพาะ template/ร่างระเบียบ)
+          if (isOtherType && (isDraftReg || isTemplate)) {
+            console.log('Skip (other type):', f.name);
+            continue;
+          }
 
-            // ตรงประเภทที่เลือก
-            const isMatchType = matchKeywords.some(k => n.includes(k));
-            const isOtherType = otherKeywords.some(k => n.includes(k));
-
-            if (isChecklist) {
-              checklistText += text + '\n\n';
-              return;
-            }
-
-            if (isDraftReg) {
-              // ร่างระเบียบสหกรณ์ → templateText ทุกประเภท (สาระสำคัญเหมือนกัน ต่างแค่ชื่อ)
-              templateText += text + '\n\n';
-              console.log('Draft loaded:', blob.pathname, text.length, 'chars');
-            } else if (isLawReg || isLawOther) {
-              // ระเบียบนายทะเบียน + กฎหมายอื่น → lawText เสมอ
-              lawText += text + '\n\n';
-              console.log('Law loaded:', blob.pathname, text.length, 'chars');
-            } else if (n.includes('template')) {
-              // ไฟล์ template ที่ชื่อขึ้นต้นด้วย template → templateText ทุกประเภท
-              templateText += text + '\n\n';
-              console.log('Template loaded:', blob.pathname, text.length, 'chars');
+          // docType = 'regulation' → เน้นไฟล์ระเบียบ, template ไม่จำเป็น
+          if (docType === 'regulation') {
+            if (isDraftReg || isTemplate) {
+              // ร่างระเบียบ → template สำหรับ regulation
+              if (myKeywords.some(k => n.includes(k)) || !otherKeywords.some(k => n.includes(k))) {
+                templateText += text + '\n\n';
+                console.log('Template(reg):', f.name, text.length);
+              }
             } else {
-              // ไฟล์อื่นๆ → lawText
               lawText += text + '\n\n';
-              console.log('Other loaded:', blob.pathname, text.length, 'chars');
+              console.log('Law(reg):', f.name, text.length);
             }
-          } catch(e) { console.warn('Error:', blob.pathname, e.message); }
-        })
-      );
-      console.log('Template:', templateText.length, 'Law:', lawText.length, 'Checklist:', checklistText.length);
-      } // end token exists block
+          } else {
+            // docType = 'bylaw' → เน้น template ข้อบังคับ
+            if (isDraftReg || isTemplate) {
+              templateText += text + '\n\n';
+              console.log('Template(bylaw):', f.name, text.length);
+            } else {
+              lawText += text + '\n\n';
+              console.log('Law(bylaw):', f.name, text.length);
+            }
+          }
+        }
+
+        console.log('Template:', templateText.length, 'chars | Law:', lawText.length, 'chars');
+      }
     } catch (e) {
-      console.warn('Blob import/list error:', e.message);
+      console.warn('Blob error:', e.message);
     }
 
     // ── สร้าง System Prompt ────────────────────────────
-    const system = `คุณคือผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย ทำหน้าที่ตรวจสอบข้อบังคับ${typeLabel}${sizeLabel ? ' ' + sizeLabel : ''}
+    const system = `คุณคือผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย ทำหน้าที่ตรวจสอบ${docLabel}ของ${typeLabel}${sizeLabel ? ' ' + sizeLabel : ''}
 วิเคราะห์เอกสารอย่างละเอียดและรอบคอบ โดยตรวจสอบ 3 ชั้น:
 
 ชั้นที่ 1: เทียบกับร่างข้อบังคับมาตรฐาน (Template) ทีละข้อ
@@ -160,17 +167,23 @@ JSON format:
     // ── สร้าง User Prompt ──────────────────────────────
     const parts = [];
 
+    // cap แบบ proportional: template 20k, law 20k, doc 25k = ~65k รวม
+    const TEMPLATE_CAP = 20000;
+    const LAW_CAP      = 20000;
+    const DOC_CAP      = 25000;
+
     if (templateText) {
-      parts.push(`[ร่างข้อบังคับมาตรฐาน ${typeLabel} ${sizeLabel}]\n${templateText.slice(0, 18000)}`);
+      parts.push(`[${docLabel}มาตรฐาน ${typeLabel} ${sizeLabel}]\n${templateText.slice(0, TEMPLATE_CAP)}`);
     } else {
-      parts.push(`[หมายเหตุ] ไม่พบ Template สำหรับ ${typeLabel} ${sizeLabel} ในฐานข้อมูล ให้ใช้ความรู้จาก พ.ร.บ.สหกรณ์แทน`);
+      parts.push(`[หมายเหตุ] ไม่พบ Template ${docLabel} สำหรับ ${typeLabel} ในฐานข้อมูล ให้ตรวจตาม พ.ร.บ.สหกรณ์เป็นหลัก`);
     }
 
     if (lawText) {
-      parts.push(`[กฎหมายที่เกี่ยวข้อง]\n${lawText.slice(0, 12000)}`);
+      parts.push(`[กฎหมายที่เกี่ยวข้อง — พ.ร.บ., กฎกระทรวง, ระเบียบ, คำแนะนำ, ประกาศนายทะเบียน]\n${lawText.slice(0, LAW_CAP)}`);
     }
 
-    parts.push(`[ข้อบังคับที่ต้องการตรวจสอบ]\n${docText.slice(0, 20000)}`);
+    const docLabel2 = docType === 'regulation' ? 'ระเบียบ' : 'ข้อบังคับ';
+    parts.push(`[${docLabel2}ที่ต้องการตรวจสอบ — ${typeLabel} ${sizeLabel}]\n${docText.slice(0, DOC_CAP)}`);
 
     const userPrompt = parts.join('\n\n---\n\n');
 
@@ -184,7 +197,7 @@ JSON format:
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-20250514',
-        max_tokens: 3000,
+        max_tokens: 4000,
         system,
         messages: [{ role: 'user', content: userPrompt }],
       }),

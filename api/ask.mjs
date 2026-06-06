@@ -22,157 +22,119 @@ export default async function handler(req, res) {
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      // Vercel inject token ชื่อ <store-name>_READ_WRITE_TOKEN (แทน - ด้วย _)
-      // store "knowledge-public" → knowledge_public_READ_WRITE_TOKEN
-      const token = process.env.knowledge_public_READ_WRITE_TOKEN
-                 || process.env.BLOB_READ_WRITE_TOKEN;
-      if (!token) {
-        const blobKeys = Object.keys(process.env).filter(k =>
-          k.toLowerCase().includes('blob') || k.toLowerCase().includes('knowledge')
-        );
-        console.warn('Blob token not found. Blob-related env vars:', blobKeys.join(', ') || 'none');
-      } else {
-        console.log('Blob token found:', token.slice(0,20)+'...');
-        const { blobs } = await list({ token });
-        console.log('Blob files found:', blobs.length);
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      console.log('token:', token ? token.slice(0,20)+'...' : 'NOT SET');
+      const { blobs } = await list({ limit: 100, token });
+      console.log('Blob files:', blobs.length);
 
-        const contents = await Promise.all(
-          blobs
-            .filter(b => b.pathname.endsWith('.txt'))
-            .map(async (blob) => {
-              try {
-                // ✅ Public store URL ไม่ต้องการ Authorization header
-                const r = await fetch(blob.url);
-                if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return ''; }
-                const text = await r.text();
-                console.log('Loaded:', blob.pathname, text.length, 'chars');
-                return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
-              } catch(e) {
-                console.warn('Blob read error:', blob.pathname, e.message);
-                return '';
-              }
-            })
-        );
-        knowledgeText = contents.filter(Boolean).join('\n\n');
-        console.log('Total knowledge chars:', knowledgeText.length);
-      }
-    } catch (e) {
-      console.warn('Blob import/list error:', e.message);
-    }
-
-    // ── ค้นหาเฉพาะส่วนที่เกี่ยวข้อง ──────────────────
-    let context = '';
-    if (knowledgeText) {
-      // แยกแต่ละไฟล์ด้วย delimiter [ชื่อไฟล์.txt]
-      const fileBlocks = knowledgeText.split(/(?=\[[^\]]+\.txt\])/);
-      const allChunks = [];
-      let keywords = extractKeywords(question);
-      const matraMatch = question.match(/มาตรา\s*(\d+(?:\/\d+)?)/);
-
-      // Special case: เพิ่ม keyword เฉพาะเรื่อง
-      if (question.includes('ชุมนุมสหกรณ์') && !matraMatch) {
-        keywords = [...keywords, 'หมวด 7', 'มาตรา 101', 'มาตรา 102', 'จัดตั้งชุมนุม'];
-      }
-      if (question.includes('ควบสหกรณ์') || question.includes('การควบ')) {
-        keywords = [...keywords, 'หมวด 5', 'มาตรา 90', 'ควบเข้ากัน'];
-      }
-      if (question.includes('แยกสหกรณ์') || question.includes('การแยก')) {
-        keywords = [...keywords, 'หมวด 6', 'มาตรา 96'];
-      }
-      if (question.includes('สมาชิกสมทบ')) {
-        keywords = [...keywords, 'มาตรา 41', 'สมาชิกสมทบ', 'ผู้ตรวจสอบกิจการ'];
-      }
-      if (question.includes('เงินกู้') || question.includes('การให้กู้') || question.includes('สินเชื่อ')) {
-        keywords = [...keywords, 'เงินกู้', 'การให้เงินกู้', 'หลักเกณฑ์การให้เงินกู้', 'คำแนะนำนายทะเบียน', 'รับผิดชอบ', 'เป็นธรรม', 'ความสามารถในการชำระหนี้'];
-      }
-      if (question.includes('รับผิดชอบและเป็นธรรม') || question.includes('รับผิดชอบ') || question.includes('เป็นธรรม')) {
-        keywords = [...keywords, 'คำแนะนำนายทะเบียนสหกรณ์', 'หลักเกณฑ์การให้เงินกู้', 'รับผิดชอบ', 'เป็นธรรม', 'เงินกู้'];
-      }
-      if (question.includes('ดอกเบี้ย') || question.includes('อัตราดอกเบี้ย')) {
-        keywords = [...keywords, 'ดอกเบี้ย', 'อัตราดอกเบี้ย', 'เงินกู้', 'คำแนะนำนายทะเบียน'];
-      }
-      if (question.includes('ชำระหนี้') || question.includes('ความสามารถ') || question.includes('เงินเหลือสุทธิ')) {
-        keywords = [...keywords, 'ความสามารถในการชำระหนี้', 'เงินเหลือสุทธิ', 'หลักเกณฑ์การให้เงินกู้', 'คำแนะนำนายทะเบียน'];
-      }
-      if (question.includes('หนี้เรื้อรัง') || question.includes('ปรับโครงสร้างหนี้') || question.includes('ผิดนัด')) {
-        keywords = [...keywords, 'หนี้เรื้อรัง', 'ปรับปรุงโครงสร้างหนี้', 'ผิดนัดชำระหนี้', 'คำแนะนำนายทะเบียน'];
-      }
-      if (question.includes('ข้อมูลเครดิต') || question.includes('เครดิตบูโร')) {
-        keywords = [...keywords, 'ข้อมูลเครดิต', 'บริษัท ข้อมูลเครดิตแห่งชาติ', 'เงินกู้'];
-      }
-      if (question.includes('ประกาศ') || question.includes('ประกาศนายทะเบียน')) {
-        keywords = [...keywords, 'ประกาศ', 'ประกาศนายทะเบียนสหกรณ์', 'นายทะเบียนสหกรณ์'];
-      }
-      if (question.includes('คำแนะนำ') || question.includes('คำแนะนำนายทะเบียน')) {
-        keywords = [...keywords, 'คำแนะนำ', 'คำแนะนำนายทะเบียนสหกรณ์', 'หลักเกณฑ์การให้เงินกู้'];
-      }
-
-      for (const block of fileBlocks) {
-        if (!block.trim()) continue;
-        // ดึงชื่อไฟล์
-        const fileNameMatch = block.match(/^\[([^\]]+\.txt)\]/);
-        const fileName = fileNameMatch ? fileNameMatch[1] : '';
-        const fileText = block.replace(/^\[[^\]]+\.txt\]\n?/, '');
-
-        // weight พิเศษตามลำดับความสำคัญ
-        let fileBonus = 0;
-        const fn = fileName.toLowerCase();
-        if (fn.includes('พระราชบัญญัติ') || fn.includes('2542')) fileBonus = 20;
-        else if (/^\d+-กฎกระทรวง/.test(fn) || fn.includes('กฎกระทรวง')) {
-          // รูปแบบ: 1-กฎกระทรวง_xxx หรือ กฎกระทรวง_xxx
-          fileBonus = 10;
-        } else if (/^\d+_คำแนะนำ/.test(fn) || fn.includes('คำแนะนำ')) {
-          // รูปแบบ: 1_คำแนะนำ_xxx หรือ คำแนะนำ_xxx
-          fileBonus = 8;
-        } else if (/^\d+_ประกาศ/.test(fn) || fn.includes('ประกาศ')) {
-          // รูปแบบ: 1_ประกาศ_xxx หรือ ประกาศ_xxx
-          fileBonus = 8;
-        } else if (/^\d+-/.test(fn) && !fn.includes('ระเบียบ')) {
-          // รูปแบบ: 16-การบัญชี_xxx = ระเบียบนายทะเบียนสหกรณ์
-          fileBonus = 8;
-        } else if (/^\d+-ระเบียบ/.test(fn) || /ระเบียบ_\d+/.test(fn)) {
-          // ระเบียบนายทะเบียนที่มีเลขกำกับ
-          fileBonus = 8;
-        } else if (fn.includes('ระเบียบ') && !/^\d+/.test(fn)) {
-          // ระเบียบ_ออมทรัพย์ ฯลฯ = ร่างระเบียบสหกรณ์ — ไม่ boost
-          fileBonus = 0;
-        } else if (fn.includes('checklist')) fileBonus = 3;
-
-        const chunks = splitBySection(fileText);
-        for (const chunk of chunks) {
-          // Exact match มาตรา — รองรับเลขอารบิก, เลขไทย, ช่องว่างต่างๆ
-          if (matraMatch) {
-            const num = matraMatch[1];
-            const thaiNum = toThaiNumerals(num);
-            // ตรวจทั้ง "มาตรา 41", "มาตรา๔๑", "มาตรา  41" ฯลฯ
-            const patterns = [
-              `มาตรา ${num}`, `มาตรา${num}`,
-              `มาตรา ${thaiNum}`, `มาตรา${thaiNum}`,
-            ];
-            const isExact = patterns.some(p =>
-              chunk.includes(p)
-            );
-            if (isExact) {
-              allChunks.push({ text: chunk, score: 999 + fileBonus });
-              continue;
+      const contents = await Promise.all(
+        blobs
+          .filter(b => b.pathname.endsWith('.txt'))
+          .map(async (blob) => {
+            try {
+              const r = await fetch(blob.url, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+              });
+              if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
+              const text = await r.text();
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
+            } catch(e) {
+              console.warn('Error:', blob.pathname, e.message);
+              return '';
             }
-          }
-          const score = scoreChunk(chunk, keywords);
-          if (score > 0) allChunks.push({ text: chunk, score: score + fileBonus });
+          })
+      );
+      knowledgeText = contents.filter(Boolean).join('\n\n');
+      console.log('Total knowledge chars:', knowledgeText.length);
+    } catch (e) {
+      console.warn('Blob fetch failed:', e.message);
+    }
+
+    // ── Hybrid: filter ไฟล์ตามประเภทคำถาม → ส่งทั้งไฟล์ ────────
+    // ราคา: ~$0.077/ครั้ง (vs Full Context $0.40, RAG $0.03)
+    // แม่นกว่า keyword chunk เพราะส่งทั้งไฟล์ ไม่ตัดข้อมูลออก
+    let context = '';
+    let usedFiles = [];
+    if (knowledgeText) {
+      // แยกไฟล์
+      const fileBlocks = knowledgeText.split(/(?=\[[^\]]+\.txt\])/).filter(b => b.trim());
+
+      // จำแนกประเภทคำถาม
+      const q = question.toLowerCase();
+      const needLaw      = q.includes('มาตรา') || q.includes('พ.ร.บ') || q.includes('บัญญัติ');
+      const needRegs     = q.includes('กฎกระทรวง') || q.includes('ระเบียบ') || q.includes('ข้อบังคับ');
+      const needNotice   = q.includes('คำแนะนำ') || q.includes('ประกาศ') || q.includes('นายทะเบียน')
+                        || q.includes('เงินกู้') || q.includes('ดอกเบี้ย') || q.includes('ร้อยละ')
+                        || q.includes('สินเชื่อ') || q.includes('ชำระหนี้') || q.includes('หนี้')
+                        || q.includes('เงินเหลือสุทธิ') || q.includes('หลักเกณฑ์');
+      const needTemplate = q.includes('ร่างข้อบังคับ') || q.includes('template') || q.includes('ตัวอย่าง');
+      const needAll      = !needLaw && !needRegs && !needNotice && !needTemplate;
+
+      // priority score ต่อไฟล์ตาม keyword
+      const keywords = extractKeywords(question);
+
+      const scored = fileBlocks.map(block => {
+        const nameMatch = block.match(/^\[([^\]]+\.txt)\]/);
+        const fileName  = nameMatch ? nameMatch[1].toLowerCase() : '';
+        const fileText  = block.replace(/^\[[^\]]+\.txt\]\n?/, '');
+
+        // ── ประเภทไฟล์ ──
+        const isPRB      = fileName.includes('พระราชบัญญัติ') || fileName.includes('2542');
+        const isMinReg   = /^\d+-กฎกระทรวง/.test(fileName) || fileName.includes('กฎกระทรวง');
+        const isNotice   = /^\d+_คำแนะนำ/.test(fileName) || fileName.includes('คำแนะนำ');
+        const isAnnounce = /^\d+_ประกาศ/.test(fileName)   || fileName.includes('ประกาศ');
+        const isRegCoop  = /^\d+-/.test(fileName) && !isMinReg;  // ระเบียบนายทะเบียน
+        const isDraftReg = fileName.includes('ระเบียบ') && !/^\d+/.test(fileName);
+
+        // ── relevance score ──
+        let score = 0;
+
+        // match ประเภทคำถาม
+        if (needAll)      score += 10;
+        if (needLaw      && isPRB)      score += 50;
+        if (needRegs     && isMinReg)   score += 40;
+        if (needNotice   && (isNotice || isAnnounce || isRegCoop)) score += 40;
+        if (needTemplate && isDraftReg) score += 40;
+
+        // keyword score (เฉพาะชื่อไฟล์ + ข้อความ 500 ตัวแรก)
+        const sample = fileName + ' ' + fileText.slice(0, 500);
+        for (const kw of keywords) {
+          if (kw.length > 2 && sample.includes(kw)) score += 3;
         }
+
+        // พ.ร.บ. มักจำเป็นเสมอ
+        if (isPRB) score += 15;
+
+        return { fileName, fileText, score, chars: fileText.length };
+      });
+
+      // เรียงคะแนน + รับไฟล์จนถึง 35,000 chars
+      scored.sort((a, b) => b.score - a.score);
+      let totalChars = 0;
+      const MAX_CONTEXT = 35000;
+
+      for (const f of scored) {
+        if (f.score === 0) continue;
+        if (totalChars + f.chars > MAX_CONTEXT) {
+          // ถ้าไฟล์ใหญ่เกิน ตัดเอาแค่ส่วนแรก
+          const remaining = MAX_CONTEXT - totalChars;
+          if (remaining > 500) {
+            context += '\n\n[' + f.fileName + '] (บางส่วน)\n' + f.fileText.slice(0, remaining);
+            usedFiles.push(f.fileName + '(partial)');
+            totalChars += remaining;
+          }
+          break;
+        }
+        context += '\n\n[' + f.fileName + ']\n' + f.fileText;
+        usedFiles.push(f.fileName);
+        totalChars += f.chars;
       }
 
-      allChunks.sort((a, b) => b.score - a.score);
-      const seen = new Set();
-      for (const c of allChunks) {
-        if (seen.has(c.text)) continue;
-        seen.add(c.text);
-        if ((context + c.text).length > 8000) break;
-        context += c.text + '\n\n';
-      }
+      console.log('Hybrid files selected:', usedFiles.length, '/', fileBlocks.length);
+      console.log('Files:', usedFiles.join(', '));
+      console.log('Context chars:', totalChars);
     }
-    console.log('Context sent to Claude:', context.length, 'chars');
-    console.log('Context preview:', context.slice(0, 200));
 
     // ── System Prompt ──────────────────────────────────
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
@@ -255,7 +217,15 @@ export default async function handler(req, res) {
     // ── User Prompt ────────────────────────────────────
     let userPrompt = '';
     if (context) {
-      userPrompt = `[ข้อมูลกฎหมายที่เกี่ยวข้องจากฐานข้อมูล]\n${context}\n\n[คำแนะนำ] ตอบจากข้อมูลข้างต้นเป็นหลัก ถ้าไม่มีให้ตอบจากความรู้ทั่วไป\n\n[คำถาม]\n${question}`;
+      userPrompt = [
+        `[ฐานข้อมูลกฎหมายสหกรณ์ที่เกี่ยวข้อง (${usedFiles.length} ไฟล์)]`,
+        context.trim(),
+        ``,
+        `[คำแนะนำ] ตอบจากข้อมูลในฐานข้อมูลข้างต้นเป็นหลัก อ้างอิงชื่อไฟล์และมาตรา/ข้อ`,
+        ``,
+        `[คำถาม]`,
+        question,
+      ].join('\n');
     } else {
       userPrompt = `[คำถาม]\n${question}`;
     }
