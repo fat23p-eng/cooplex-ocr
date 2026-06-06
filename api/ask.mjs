@@ -22,10 +22,9 @@ export default async function handler(req, res) {
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      // knowledge_public เป็น Public store ใช้ storeId อย่างเดียว ไม่ต้องใช้ token
-      const storeId = process.env.knowledge_public_STORE_ID;
-      console.log('storeId:', storeId ? storeId.slice(0,20)+'...' : 'NOT SET');
-      const { blobs } = await list({ limit: 100, storeId });
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      console.log('token:', token ? token.slice(0,20)+'...' : 'NOT SET');
+      const { blobs } = await list({ limit: 100, token });
       console.log('Blob files:', blobs.length);
 
       const contents = await Promise.all(
@@ -33,8 +32,9 @@ export default async function handler(req, res) {
           .filter(b => b.pathname.endsWith('.txt'))
           .map(async (blob) => {
             try {
-              // Public blob — fetch ตรงๆ ได้เลย ไม่ต้อง auth
-              const r = await fetch(blob.url);
+              const r = await fetch(blob.url, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+              });
               if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
               const text = await r.text();
               console.log('Loaded:', blob.pathname, text.length, 'chars');
