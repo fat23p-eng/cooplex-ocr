@@ -18,31 +18,43 @@ export default async function handler(req, res) {
       notice: 'นายทะเบียนสหกรณ์',
     }[filter || 'all'];
 
-    // ── ดึง Knowledge จาก Vercel Blob (Server-side with token) ──
+    // ── ดึง Knowledge จาก Vercel Blob ──────────────────────────
     let knowledgeText = '';
     try {
-      const { list, head } = await import('@vercel/blob');
+      const { list } = await import('@vercel/blob');
+
+      // รองรับทั้ง OIDC (ใหม่) และ token เดิม
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      const { blobs } = await list({ limit: 100, token });
+      const listOpts = token ? { limit: 100, token } : { limit: 100 };
+
+      console.log('Using token:', token ? 'YES (READ_WRITE_TOKEN)' : 'NO (OIDC)');
+      const { blobs } = await list(listOpts);
       console.log('Blob files:', blobs.length);
+
+      if (blobs.length === 0) {
+        console.warn('No blobs found — ตรวจสอบ BLOB_READ_WRITE_TOKEN หรือ OIDC connection');
+      }
 
       const contents = await Promise.all(
         blobs
           .filter(b => b.pathname.endsWith('.txt'))
           .map(async (blob) => {
             try {
-              // ดึงด้วย token ผ่าน Authorization header
-              const r = await fetch(blob.url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
+              // ลอง fetch โดยไม่ต้องใช้ Authorization header ก่อน (OIDC)
+              let r = await fetch(blob.url);
+              // ถ้าไม่ได้ ลองใช้ token
+              if (!r.ok && token) {
+                r = await fetch(blob.url, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+              }
               if (!r.ok) {
                 console.warn('Failed:', blob.pathname, r.status);
                 return '';
               }
               const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length);
-              return `[${blob.pathname}]
-${text}`;
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return '[' + blob.pathname + ']\n' + text;
             } catch(e) {
               console.warn('Error:', blob.pathname, e.message);
               return '';
