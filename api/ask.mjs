@@ -27,13 +27,14 @@ export default async function handler(req, res) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const storeId = process.env.knowledge_public_STORE_ID;
 
-      // ใช้ OIDC เท่านั้น — ไม่ส่ง token (token อาจเป็นของ store อื่น)
+      // ใช้ token ของ knowledge_public store
+      const kpToken = process.env.knowledge_public_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN;
       const listOpts = { limit: 100 };
       if (storeId) listOpts.storeId = storeId;
-      // ไม่ใส่ token เพื่อให้ OIDC ทำงาน
+      if (kpToken) listOpts.token = kpToken;
 
       console.log('Using storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
-      console.log('Using OIDC only (no token)');
+      console.log('Using token:', kpToken ? kpToken.slice(0,20)+'...' : 'NONE');
       const { blobs } = await list(listOpts);
       console.log('Blob files:', blobs.length);
 
