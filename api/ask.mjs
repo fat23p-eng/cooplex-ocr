@@ -27,12 +27,13 @@ export default async function handler(req, res) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const storeId = process.env.knowledge_public_STORE_ID || process.env.BLOB_STORE_ID;
 
+      // ใช้ OIDC เท่านั้น — ไม่ส่ง token (token อาจเป็นของ store อื่น)
       const listOpts = { limit: 100 };
-      if (token) listOpts.token = token;
       if (storeId) listOpts.storeId = storeId;
+      // ไม่ใส่ token เพื่อให้ OIDC ทำงาน
 
       console.log('Using storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
-      console.log('Using token:', token ? 'YES' : 'NO (OIDC)');
+      console.log('Using OIDC only (no token)');
       const { blobs } = await list(listOpts);
       console.log('Blob files:', blobs.length);
 
@@ -49,13 +50,8 @@ export default async function handler(req, res) {
           .map(async (blob) => {
             try {
               // ลอง fetch โดยไม่ต้องใช้ Authorization header ก่อน (OIDC)
+              // OIDC — fetch โดยตรงไม่ต้องใช้ token
               let r = await fetch(blob.url);
-              // ถ้าไม่ได้ ลองใช้ token
-              if (!r.ok && token) {
-                r = await fetch(blob.url, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-              }
               if (!r.ok) {
                 console.warn('Failed:', blob.pathname, r.status);
                 return '';

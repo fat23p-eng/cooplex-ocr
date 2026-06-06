@@ -29,9 +29,9 @@ export default async function handler(req, res) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const storeId = process.env.knowledge_public_STORE_ID || process.env.BLOB_STORE_ID;
       const listOpts = { limit: 100 };
-      if (token) listOpts.token = token;
       if (storeId) listOpts.storeId = storeId;
       console.log('Inspect storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
+      console.log('Inspect using OIDC only');
       const { blobs } = await list(listOpts);
 
       // keyword ตาม coopType ที่ผู้ใช้เลือก
@@ -49,9 +49,6 @@ export default async function handler(req, res) {
         .map(async (blob) => {
           try {
             let r = await fetch(blob.url);
-            if (!r.ok && token) {
-              r = await fetch(blob.url, { headers: { 'Authorization': `Bearer ${token}` } });
-            }
             if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return; }
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
