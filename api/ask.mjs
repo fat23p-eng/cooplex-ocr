@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
       // ลอง knowledge_public store ก่อน ถ้าไม่มีค่อยใช้ default
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      const storeId = process.env.knowledge_public_STORE_ID || process.env.BLOB_STORE_ID;
+      const storeId = process.env.knowledge_public_STORE_ID;
 
       // ใช้ OIDC เท่านั้น — ไม่ส่ง token (token อาจเป็นของ store อื่น)
       const listOpts = { limit: 100 };

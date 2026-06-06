@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      const storeId = process.env.knowledge_public_STORE_ID || process.env.BLOB_STORE_ID;
+      const storeId = process.env.knowledge_public_STORE_ID;
       const listOpts = { limit: 100 };
       if (storeId) listOpts.storeId = storeId;
       console.log('Inspect storeId:', storeId ? storeId.slice(0,20)+'...' : 'DEFAULT');
