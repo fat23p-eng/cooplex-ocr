@@ -9,17 +9,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { docText, docType, coopType, coopSize } = req.body;  // docType: 'bylaw'|'regulation'
+    const { docText, coopType, coopSize } = req.body;
     if (!docText) return res.status(400).json({ error: 'Missing docText' });
 
-    // ── ประเภทเอกสารและสหกรณ์ ───────────────────────────
-    const docLabel = docType === 'regulation' ? 'ระเบียบ' : 'ข้อบังคับ';  // ✅ ใช้ docType จาก index
-
+    // ── ประเภทสหกรณ์ ──────────────────────────────────
     const typeLabel = {
-      saving:  'สหกรณ์ออมทรัพย์',
-      credit:  'สหกรณ์เครดิตยูเนียน',
-      service: 'สหกรณ์บริการ',
-      agri:    'สหกรณ์การเกษตร',
+      saving: 'สหกรณ์ออมทรัพย์',
+      credit: 'สหกรณ์เครดิตยูเนียน',
     }[coopType || 'saving'];
 
     const sizeLabel = coopSize === 'large'
@@ -30,12 +26,17 @@ export default async function handler(req, res) {
     let templateText = '', lawText = '', checklistText = '';
     try {
       const { list } = await import('@vercel/blob');
-      // ✅ ใช้ BLOB_READ_WRITE_TOKEN เหมือนกับ ask.mjs (ไม่ใช่ storeId)
-      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      // ✅ ใช้ token (ไม่ใช่ storeId) — ชื่อตาม store "knowledge-public"
+      const token = process.env.knowledge_public_READ_WRITE_TOKEN
+                 || process.env.BLOB_READ_WRITE_TOKEN;
       if (!token) {
-        console.warn('BLOB_READ_WRITE_TOKEN is not set — skipping blob fetch');
+        const blobKeys = Object.keys(process.env).filter(k =>
+          k.toLowerCase().includes('blob') || k.toLowerCase().includes('knowledge')
+        );
+        console.warn('Blob token not found. Blob-related env vars:', blobKeys.join(', ') || 'none');
+        // skip blob — ใช้ความรู้จาก prompt แทน
       } else {
-      console.log('Inspect token:', token.slice(0,20)+'...');
+      console.log('Inspect blob token:', token.slice(0,20)+'...');
       const { blobs } = await list({ token });
 
       // keyword ตาม coopType ที่ผู้ใช้เลือก
@@ -52,8 +53,7 @@ export default async function handler(req, res) {
         .filter(b => b.pathname.endsWith('.txt'))
         .map(async (blob) => {
           try {
-            // ✅ Vercel Blob URL มี signed token อยู่แล้ว ไม่ต้องใส่ Authorization
-            const r = await fetch(blob.url);
+            const r = await fetch(blob.url); // Public store — no auth header needed
             if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return; }
             const text = await r.text();
             const n = blob.pathname.toLowerCase();
@@ -103,13 +103,13 @@ export default async function handler(req, res) {
         })
       );
       console.log('Template:', templateText.length, 'Law:', lawText.length, 'Checklist:', checklistText.length);
-      } // end else (token exists)
+      } // end token exists block
     } catch (e) {
-      console.warn('Blob import/list failed:', e.message);
+      console.warn('Blob import/list error:', e.message);
     }
 
     // ── สร้าง System Prompt ────────────────────────────
-    const system = `คุณคือผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย ทำหน้าที่ตรวจสอบ${docLabel}ของ${typeLabel}${sizeLabel ? ' ' + sizeLabel : ''}
+    const system = `คุณคือผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย ทำหน้าที่ตรวจสอบข้อบังคับ${typeLabel}${sizeLabel ? ' ' + sizeLabel : ''}
 วิเคราะห์เอกสารอย่างละเอียดและรอบคอบ โดยตรวจสอบ 3 ชั้น:
 
 ชั้นที่ 1: เทียบกับร่างข้อบังคับมาตรฐาน (Template) ทีละข้อ
@@ -163,14 +163,14 @@ JSON format:
     if (templateText) {
       parts.push(`[ร่างข้อบังคับมาตรฐาน ${typeLabel} ${sizeLabel}]\n${templateText.slice(0, 18000)}`);
     } else {
-      parts.push(`[หมายเหตุ] ไม่พบ Template สำหรับ ${docLabel}ของ${typeLabel} ${sizeLabel} ในฐานข้อมูล ให้ใช้ความรู้จาก พ.ร.บ.สหกรณ์แทน`);
+      parts.push(`[หมายเหตุ] ไม่พบ Template สำหรับ ${typeLabel} ${sizeLabel} ในฐานข้อมูล ให้ใช้ความรู้จาก พ.ร.บ.สหกรณ์แทน`);
     }
 
     if (lawText) {
       parts.push(`[กฎหมายที่เกี่ยวข้อง]\n${lawText.slice(0, 12000)}`);
     }
 
-    parts.push(`[${docLabel}ที่ต้องการตรวจสอบ]\n${docText.slice(0, 20000)}`);
+    parts.push(`[ข้อบังคับที่ต้องการตรวจสอบ]\n${docText.slice(0, 20000)}`);
 
     const userPrompt = parts.join('\n\n---\n\n');
 

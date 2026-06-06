@@ -22,12 +22,17 @@ export default async function handler(req, res) {
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      // Vercel inject token ชื่อ <store-name>_READ_WRITE_TOKEN (แทน - ด้วย _)
+      // store "knowledge-public" → knowledge_public_READ_WRITE_TOKEN
+      const token = process.env.knowledge_public_READ_WRITE_TOKEN
+                 || process.env.BLOB_READ_WRITE_TOKEN;
       if (!token) {
-        console.warn('BLOB_READ_WRITE_TOKEN is not set — skipping knowledge fetch');
+        const blobKeys = Object.keys(process.env).filter(k =>
+          k.toLowerCase().includes('blob') || k.toLowerCase().includes('knowledge')
+        );
+        console.warn('Blob token not found. Blob-related env vars:', blobKeys.join(', ') || 'none');
       } else {
-        console.log('Blob token:', token.slice(0,20)+'...');
-        // list() ใช้ token สำหรับ auth เท่านั้น ไม่ต้องส่งใน fetch header
+        console.log('Blob token found:', token.slice(0,20)+'...');
         const { blobs } = await list({ token });
         console.log('Blob files found:', blobs.length);
 
@@ -36,9 +41,9 @@ export default async function handler(req, res) {
             .filter(b => b.pathname.endsWith('.txt'))
             .map(async (blob) => {
               try {
-                // ✅ ไม่ใส่ Authorization header — Vercel Blob URL มี signed token อยู่แล้ว
+                // ✅ Public store URL ไม่ต้องการ Authorization header
                 const r = await fetch(blob.url);
-                if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status, r.statusText); return ''; }
+                if (!r.ok) { console.warn('Fetch failed:', blob.pathname, r.status); return ''; }
                 const text = await r.text();
                 console.log('Loaded:', blob.pathname, text.length, 'chars');
                 return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
         console.log('Total knowledge chars:', knowledgeText.length);
       }
     } catch (e) {
-      console.warn('Blob import/list failed:', e.message);
+      console.warn('Blob import/list error:', e.message);
     }
 
     // ── ค้นหาเฉพาะส่วนที่เกี่ยวข้อง ──────────────────
