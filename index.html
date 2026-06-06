@@ -1028,10 +1028,10 @@ async function callAsk(question, filter) {
   if (d.error) throw new Error(d.error);
   return d.answer;
 }
-async function callInspect(docText, inspectType, coopType, coopSize) {
+async function callInspect(docText, docType, coopType, coopSize) {
   const r = await fetch('/api/inspect', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ docText, inspectType, coopType, coopSize })
+    body: JSON.stringify({ docText, docType, coopType, coopSize })  // ✅ docType ตรงกับ inspect.mjs
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
