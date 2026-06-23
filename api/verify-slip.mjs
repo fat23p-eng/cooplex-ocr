@@ -139,11 +139,16 @@ export default async function handler(req, res) {
 async function kvFetch(cmd, ...args) {
   const url  = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not set');
-
-  const r = await fetch(`${url}/${[cmd, ...args].map(encodeURIComponent).join('/')}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const d = await r.json();
-  return d.result ?? null;
+  if (!url || !token) { console.warn('KV env vars not set'); return null; }
+  try {
+    const r = await fetch(`${url}/${[cmd, ...args].map(encodeURIComponent).join('/')}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) { console.warn('KV fetch failed:', r.status); return null; }
+    const d = await r.json();
+    return d.result ?? null;
+  } catch(e) {
+    console.warn('KV fetch error:', e.message);
+    return null;
+  }
 }
