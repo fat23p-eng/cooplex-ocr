@@ -548,10 +548,10 @@ header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,#1a3d70
     </div>
     <div class="card-body">
       <div class="upzone" id="idz" ondragover="dov(event,'idz')" ondragleave="dlv(event,'idz')" ondrop="ddi(event)">
-        <input type="file" accept=".pdf,.txt,.doc,.docx" onchange="hif(this.files)">
+        <input type="file" accept=".pdf,.txt,.docx" onchange="hif(this.files)">
         <div class="uz-ico">📋</div>
         <div class="uz-t">คลิกหรือลากไฟล์มาวางที่นี่</div>
-        <div class="uz-s">รองรับ PDF, Word (.docx), Text (.txt)</div>
+        <div class="uz-s">รองรับ PDF, Word (.docx), Text (.txt) — ไม่รองรับ .doc เก่า</div>
         <div class="uz-btn">📂 เลือกไฟล์</div>
       </div>
       <div id="ifi"></div>
@@ -1064,9 +1064,8 @@ async function ep(f){
   try{
     if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
     const ab=await f.arrayBuffer();
-    // ✅ ใช้ ab.slice(0) ให้ pdfjs — ป้องกัน ab ตัวจริงถูก detach (pdf.js ใช้ zero-copy transfer)
-    const pdf=await pdfjsLib.getDocument({data:ab.slice(0)}).promise;
-    f._pages=pdf.numPages; f._ab=ab; // เก็บ ab ตัวเดิม (ยังไม่ถูก detach) ไว้ใช้ซ้ำ
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    f._pages=pdf.numPages; f._ab=ab;
     return pdf.numPages;
   }catch(e){
     console.warn('ep() failed:',e.message);
@@ -1081,8 +1080,7 @@ async function hif(files){
 }
 async function doInspect(){
   if(!iFile)return toast('⚠️ กรุณาแนบเอกสารก่อน');
-  // ✅ ใช้ pages ที่ cache ไว้แล้วจาก hif() — ไม่เรียก ep() ซ้ำ (ป้องกัน arrayBuffer ถูกอ่าน/detach 2 รอบ)
-  const pg=iFile._pages || await ep(iFile);
+  const pg=await ep(iFile);
   if(!checkPageLimit(pg, maxInspectPages(), 'ตรวจเอกสาร')) return;
   const p=ip(pg);if(p>0&&!isAdmin()&&!isOfficer()){showM('insp',p);return;}await _di();
 }
@@ -1105,20 +1103,65 @@ async function _di(){
         shL(res,'🔍 PDF เป็นไฟล์สแกน กำลัง OCR อัตโนมัติ...');
         txt = await ocrPdfForInspect(iFile);
       }
+    } else if(iFile.name.toLowerCase().endsWith('.docx') || iFile.type.includes('officedocument')){
+      // ✅ .docx เป็น binary (ZIP) — readAsText อ่านไม่ได้ ต้องใช้ mammoth.js แปลงเป็น text
+      shL(res,'📝 กำลังอ่านไฟล์ Word...');
+      txt = await extractDocxText(iFile);
+    } else if(iFile.name.toLowerCase().endsWith('.doc')){
+      // .doc (เก่า, ไม่ใช่ .docx) — ไม่รองรับการอ่านในเบราว์เซอร์
+      throw new Error('ไม่รองรับไฟล์ .doc (Word เก่า) กรุณาแปลงเป็น .docx หรือ .pdf ก่อนอัปโหลด');
     } else {
-      // ไฟล์ .txt / .docx
+      // ไฟล์ .txt
       txt = await new Promise((r,j)=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.onerror=j;fr.readAsText(iFile);});
     }
 
     if(!txt || txt.trim().length < 50){
-      throw new Error('ไม่สามารถอ่านเนื้อหาเอกสารได้ กรุณาตรวจสอบไฟล์');
+      // ✅ บอกสาเหตุเฉพาะเจาะจง แทนข้อความรวมๆที่ debug ไม่ได้
+      const charCount = txt ? txt.trim().length : 0;
+      console.error('[_di] เนื้อหาที่อ่านได้สั้นเกินไป:', charCount, 'ตัวอักษร | ไฟล์:', iFile.name, iFile.type, iFile.size, 'bytes');
+      throw new Error(
+        charCount === 0
+          ? 'อ่านเนื้อหาจากไฟล์ไม่ได้เลย (' + charCount + ' ตัวอักษร) — ไฟล์อาจเสียหาย, เข้ารหัสไว้, หรือเป็นภาพที่ OCR อ่านไม่ออก กรุณาลองไฟล์อื่นหรือแปลงเป็น .txt'
+          : 'อ่านเนื้อหาได้เพียง ' + charCount + ' ตัวอักษร (ต้องการอย่างน้อย 50) — เอกสารอาจสั้นเกินไปหรือ OCR อ่านได้ไม่ครบ'
+      );
     }
 
     shL(res,'🤖 AI กำลังวิเคราะห์เอกสาร...');
     const r=await callInspect(txt.slice(0,20000), it, coopType, coopSize);
     rIR(r);
-  }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
+  }catch(e){
+    console.error('[_di] doInspect error:', e);
+    res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">
+      <div style="font-weight:700;margin-bottom:6px">⚠️ ${e.message}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:8px">
+        💡 ลองวิธีนี้: 1) ตรวจสอบว่าไฟล์เปิดได้ปกติ 2) ถ้าเป็น PDF สแกน ลองถ่ายรูปให้ชัดขึ้น 3) แปลงเป็น .txt แล้วอัปโหลดใหม่
+      </div>
+    </div>`;
+  }
   btn.disabled=false;btn.textContent='🔍 เริ่มตรวจเอกสาร';
+}
+
+// ── extract text จาก .docx ด้วย mammoth.js ──────────────────
+async function extractDocxText(file){
+  try{
+    if(!window.mammoth){
+      await new Promise((res2,rej2)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+        s.onload=res2; s.onerror=()=>rej2(new Error('โหลด mammoth.js ไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)'));
+        document.head.appendChild(s);
+      });
+    }
+    const ab = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({arrayBuffer: ab});
+    if(result.messages && result.messages.length){
+      console.warn('[extractDocxText] mammoth warnings:', result.messages);
+    }
+    return (result.value || '').trim();
+  }catch(e){
+    console.error('[extractDocxText] อ่านไฟล์ Word ไม่สำเร็จ:', e.message, e);
+    throw new Error('อ่านไฟล์ Word (.docx) ไม่สำเร็จ: ' + e.message + ' — ลองบันทึกไฟล์ใหม่จาก Word แล้วอัปโหลดอีกครั้ง');
+  }
 }
 
 // ── extract text จาก PDF (text-layer) ──────────────────────
@@ -1136,16 +1179,30 @@ async function extractPdfText(file){
     }
     return allText.trim();
   }catch(e){
-    console.warn('extractPdfText failed:', e.message);
+    // ✅ log ชัดเจน ไม่กิน error เงียบๆ — แต่ยัง return '' เพื่อให้ลอง OCR ต่อได้
+    console.error('[extractPdfText] PDF text-layer extraction failed:', e.message, e);
     return '';
   }
 }
 
 // ── OCR PDF สแกน สำหรับตรวจเอกสาร (ส่งทีละหน้า) ─────────
 async function ocrPdfForInspect(file){
-  const imgs = await p2i({file, pages: file._pages||0, _ab: file._ab||null}, oDPI);
+  let imgs;
+  try{
+    imgs = await p2i({file, pages: file._pages||0, _ab: file._ab||null}, oDPI);
+  }catch(e){
+    console.error('[ocrPdfForInspect] p2i (render PDF→image) failed:', e.message, e);
+    throw new Error('แปลง PDF เป็นรูปภาพไม่สำเร็จ: ' + e.message);
+  }
+  if(!imgs || imgs.length === 0){
+    throw new Error('ไม่พบหน้าในไฟล์ PDF (อาจเป็นไฟล์เสียหรือเข้ารหัสไว้)');
+  }
+
   const maxPages = Math.min(imgs.length, 20); // ตรวจไม่เกิน 20 หน้า
   let allText = '';
+  let failedPages = [];
+  let lastError = '';
+
   for(let i=0; i<maxPages; i++){
     const {dataUrl, pageNum} = imgs[i];
     const b64 = dataUrl.split(',')[1];
@@ -1156,9 +1213,20 @@ ${t}
 
 `;
     }catch(e){
-      console.warn('OCR page', pageNum, 'failed:', e.message);
+      console.error('[ocrPdfForInspect] OCR page', pageNum, 'failed:', e.message, e);
+      failedPages.push(pageNum);
+      lastError = e.message;
     }
   }
+
+  // ✅ ถ้าทุกหน้า fail หมด → throw บอกสาเหตุจริง แทน return '' เงียบๆ
+  if(allText.trim().length === 0){
+    throw new Error(`OCR ไม่สำเร็จทุกหน้า (${failedPages.length}/${maxPages} หน้า) — สาเหตุล่าสุด: ${lastError || 'ไม่ทราบสาเหตุ'}`);
+  }
+  if(failedPages.length > 0){
+    console.warn('[ocrPdfForInspect] บางหน้า OCR ไม่ผ่าน:', failedPages.join(', '));
+  }
+
   return allText.trim();
 }
 function rIR(r){
@@ -1201,7 +1269,15 @@ async function doAsk(){
   try{
     const t=await callAsk(q, fil);
     rAns(t,res,'📚 พ.ร.บ.สหกรณ์ 2542 · กฎกระทรวง กสส. · นายทะเบียนสหกรณ์ (Claude AI)');
-  }catch(e){res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">⚠️ ${e.message}</div>`;}
+  }catch(e){
+    console.error('[_di] doInspect error:', e);
+    res.innerHTML=`<div style="background:var(--rel);border:1px solid rgba(185,28,28,.2);border-radius:var(--r);padding:16px;color:var(--re);font-size:13px">
+      <div style="font-weight:700;margin-bottom:6px">⚠️ ${e.message}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:8px">
+        💡 ลองวิธีนี้: 1) ตรวจสอบว่าไฟล์เปิดได้ปกติ 2) ถ้าเป็น PDF สแกน ลองถ่ายรูปให้ชัดขึ้น 3) แปลงเป็น .txt แล้วอัปโหลดใหม่
+      </div>
+    </div>`;
+  }
   btn.disabled=false;
 }
 
