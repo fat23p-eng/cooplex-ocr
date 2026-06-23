@@ -1,11 +1,6 @@
-// ════════════════════════════════════════════════════════════
-// /api/quota.mjs — เก็บโควต้ารายวันต่อ userId ด้วย Vercel Blob
-// รองรับ action: 'get' (ดูโควต้าที่เหลือ) / 'use' (ใช้โควต้า 1 ครั้ง)
-// ════════════════════════════════════════════════════════════
+// api/quota.mjs — เก็บโควต้ารายวันต่อ userId ด้วย Vercel Blob
+// ✅ Node.js runtime (เหมือน ask.mjs, inspect.mjs) — ไม่ใช่ Edge runtime
 
-export const config = { runtime: 'edge' };
-
-// โควต้าต่อวันตาม role (ต้องตรงกับ ROLES ใน index_vercel.html)
 const LIMITS = {
   admin:   { ask: 99999 },
   officer: { ask: 20 },
@@ -19,32 +14,24 @@ function todayKey() {
   return bkk.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-function jsonRes(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return jsonRes({ ok: false, error: 'Method not allowed' }, 405);
-  }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
 
   try {
-    const body = await req.json();
-    const { userId, action, type = 'ask', role = 'guest' } = body;
-
-    if (!userId) return jsonRes({ ok: false, error: 'userId is required' });
+    const { userId, action, type = 'ask', role = 'guest' } = req.body || {};
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId is required' });
 
     const { list, put } = await import('@vercel/blob');
     const token = process.env.knowledge_public_READ_WRITE_TOKEN
                || process.env.BLOB_READ_WRITE_TOKEN;
 
     if (!token) {
-      console.warn('Blob token not set for quota — fallback to unlimited');
-      // ไม่มี token → ปล่อยผ่านแทนบล็อกผู้ใช้ (fail-open)
-      return jsonRes({ ok: true, quota: { ask: 999, used: 0 } });
+      console.warn('Blob token not set for quota — fallback to unlimited (fail-open)');
+      return res.status(200).json({ ok: true, quota: { ask: 999, used: 0 } });
     }
 
     const day      = todayKey();
@@ -67,18 +54,18 @@ export default async function handler(req) {
       console.warn('quota read error:', e.message);
     }
 
-    // ── action: get — แค่ดูค่า ไม่เพิ่ม ──────────────────────
+    // ── action: get ──────────────────────────────────────────
     if (action === 'get') {
-      return jsonRes({
+      return res.status(200).json({
         ok: true,
         quota: { ask: Math.max(0, limit - used), used, limit },
       });
     }
 
-    // ── action: use — เพิ่มการใช้งาน 1 ครั้ง ─────────────────
+    // ── action: use ───────────────────────────────────────────
     if (action === 'use') {
       if (used >= limit) {
-        return jsonRes({
+        return res.status(200).json({
           ok: false,
           quota: { ask: 0, used, limit },
           error: 'หมดโควต้าวันนี้แล้ว',
@@ -95,19 +82,18 @@ export default async function handler(req) {
         });
       } catch (e) {
         console.warn('quota write error:', e.message);
-        // เขียนไม่ได้ก็ยัง fail-open ให้ใช้งานต่อได้ (ดีกว่าบล็อกผู้ใช้ผิดพลาด)
       }
 
-      return jsonRes({
+      return res.status(200).json({
         ok: true,
         quota: { ask: Math.max(0, limit - newUsed), used: newUsed, limit },
       });
     }
 
-    return jsonRes({ ok: false, error: 'Unknown action: ' + action });
+    return res.status(400).json({ ok: false, error: 'Unknown action: ' + action });
 
   } catch (err) {
     console.error('quota handler error:', err.message);
-    return jsonRes({ ok: false, error: err.message }, 500);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 }
