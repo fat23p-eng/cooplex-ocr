@@ -929,8 +929,7 @@ async function loadQuota() {
   try {
     const r = await fetch('/api/quota', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      // ✅ ส่ง authToken ไปด้วย — server จะตรวจสอบ role จริงจาก token แทนเชื่อ client
-      body: JSON.stringify({ userId: uid, action: 'get', authToken: localStorage.getItem('cl_token') || '' })
+      body: JSON.stringify({ userId: uid, action: 'get' })
     });
     const d = await r.json();
     if (d.ok) { _quota = d.quota; uqui(); }
@@ -942,8 +941,7 @@ async function useQuota(type) {
   try {
     const r = await fetch('/api/quota', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      // ✅ ส่ง authToken ไปด้วย — server จะตรวจสอบ role จริงจาก token แทนเชื่อ client
-      body: JSON.stringify({ userId: uid, action: 'use', type, authToken: localStorage.getItem('cl_token') || '' })
+      body: JSON.stringify({ userId: uid, action: 'use', type })
     });
     const d = await r.json();
     if (d.ok) { _quota = d.quota; uqui(); return true; }
@@ -1030,10 +1028,10 @@ async function callAsk(question, filter) {
   if (d.error) throw new Error(d.error);
   return d.answer;
 }
-async function callInspect(docText, docType, coopType, coopSize) {
+async function callInspect(docText, inspectType, coopType, coopSize) {
   const r = await fetch('/api/inspect', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ docText, docType, coopType, coopSize })
+    body: JSON.stringify({ docText, inspectType, coopType, coopSize })
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
@@ -1066,9 +1064,8 @@ async function ep(f){
   try{
     if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
     const ab=await f.arrayBuffer();
-    // ✅ ใช้ ab.slice(0) ให้ pdfjs — ป้องกัน ab ตัวจริงถูก detach (pdf.js ใช้ zero-copy transfer)
-    const pdf=await pdfjsLib.getDocument({data:ab.slice(0)}).promise;
-    f._pages=pdf.numPages; f._ab=ab; // เก็บ ab ตัวเดิม (ยังไม่ถูก detach) ไว้ใช้ซ้ำ
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    f._pages=pdf.numPages; f._ab=ab;
     return pdf.numPages;
   }catch(e){
     console.warn('ep() failed:',e.message);
@@ -1083,8 +1080,7 @@ async function hif(files){
 }
 async function doInspect(){
   if(!iFile)return toast('⚠️ กรุณาแนบเอกสารก่อน');
-  // ✅ ใช้ pages ที่ cache ไว้แล้วจาก hif() — ไม่เรียก ep() ซ้ำ (ป้องกัน arrayBuffer ถูกอ่าน/detach 2 รอบ)
-  const pg=iFile._pages || await ep(iFile);
+  const pg=await ep(iFile);
   if(!checkPageLimit(pg, maxInspectPages(), 'ตรวจเอกสาร')) return;
   const p=ip(pg);if(p>0&&!isAdmin()&&!isOfficer()){showM('insp',p);return;}await _di();
 }
@@ -1209,9 +1205,10 @@ async function ocrPdfForInspect(file){
 
   for(let i=0; i<maxPages; i++){
     const {dataUrl, pageNum} = imgs[i];
-    const b64 = dataUrl.split(',')[1];
     try{
-      const t = await ocrP(b64);
+      // ✅ ส่ง dataUrl เต็ม — ocrP() จะตัด prefix "data:image/...,base64" ออกเองข้างใน
+      //    เดิมส่งแค่ b64 (ตัดมาแล้ว) ทำให้ ocrP().split(',')[1] ได้ undefined → OCR fail ทุกหน้า
+      const t = await ocrP(dataUrl);
       allText += `[หน้า ${pageNum}]
 ${t}
 
@@ -1357,7 +1354,8 @@ async function dldx(i){const r=oRes[i];const stem=r.name.replace(/\.pdf$/i,'');t
 function dltx(i){const r=oRes[i];const stem=r.name.replace(/\.pdf$/i,'');tdl(new Blob([r.pages.map(p=>`\n[หน้า ${p.pageNum}]\n${'─'.repeat(40)}\n${p.text.trim()}`).join('\n')],{type:'text/plain;charset=utf-8'}),stem+'.txt');toast('✅ ดาวน์โหลด TXT แล้ว!');}
 function cpa(i){navigator.clipboard.writeText(oRes[i].pages.map(p=>p.text).join('\n\n')).then(()=>toast('✅ คัดลอกแล้ว!'));}
 async function mkdx(title,pagesText){
-  const body=pagesText.map((text,i)=>{const lines=text.split('\n').filter(l=>l.trim()).map(line=>{line=line.trim();const esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');let b='',c='1a0e00',sz='28';if(['หมวด','ภาค','กฎกระทรวง','ระเบียบ','ประกาศ','พระราชบัญญัติ'].some(k=>line.startsWith(k))){b='<w:b/>';c='0d2744';sz='30';}else if(/^มาตรา\s*\d|^ข้อ\s*\d/.test(line)){b='<w:b/>';c='92400e';}return`<w:p><w:r><w:rPr>${b}<w:color w:val="${c}"/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${esc}</w:t></w:r></w:p>`;}).join('');return`<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="9a7840"/><w:sz w:val="18"/></w:rPr><w:t>— หน้า ${i+1} —</w:t></w:r></w:p>${lines}`;}).join('<w:p><w:r><w:rPr><w:color w:val="ddd0b8"/></w:rPr><w:t>──────────────────────────────────────────────────</w:t></w:r></w:p>');
+  const stripXmlInvalid=(s)=>s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,''); // ลบ control chars ที่ XML 1.0 ไม่รับ (เก็บ \t \n \r ไว้)
+  const body=pagesText.map((text,i)=>{const lines=stripXmlInvalid(text).split('\n').filter(l=>l.trim()).map(line=>{line=line.trim();const esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');let b='',c='1a0e00',sz='28';if(['หมวด','ภาค','กฎกระทรวง','ระเบียบ','ประกาศ','พระราชบัญญัติ'].some(k=>line.startsWith(k))){b='<w:b/>';c='0d2744';sz='30';}else if(/^มาตรา\s*\d|^ข้อ\s*\d/.test(line)){b='<w:b/>';c='92400e';}return`<w:p><w:r><w:rPr>${b}<w:color w:val="${c}"/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${esc}</w:t></w:r></w:p>`;}).join('');return`<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="9a7840"/><w:sz w:val="18"/></w:rPr><w:t>— หน้า ${i+1} —</w:t></w:r></w:p>${lines}`;}).join('<w:p><w:r><w:rPr><w:color w:val="ddd0b8"/></w:rPr><w:t>──────────────────────────────────────────────────</w:t></w:r></w:p>');
   const te=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const dx=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0d2744"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>${te}</w:t></w:r></w:p><w:p/>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800"/></w:sectPr></w:body></w:document>`;
   const z=new JSZip();
