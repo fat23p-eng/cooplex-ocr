@@ -19,36 +19,38 @@ export default async function handler(req, res) {
     }[filter || 'all'];
 
     // ── ดึง Knowledge จาก Vercel Blob ──────────────────────────
+    // ✅ token ตัวเดียวที่ยืนยันแล้วว่าใช้งานได้จริง (ดู Environment Variables)
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      const token = process.env.BLOB_READ_WRITE_TOKEN;
-      console.log('token:', token ? token.slice(0,20)+'...' : 'NOT SET');
-      const { blobs } = await list({ limit: 100, token });
-      console.log('Blob files:', blobs.length);
+      const token = process.env.knowledge_public_READ_WRITE_TOKEN;
+      if (!token) {
+        console.warn('[ask] knowledge_public_READ_WRITE_TOKEN not set — knowledge fetch skipped');
+      } else {
+        const { blobs } = await list({ token, limit: 100 });
+        console.log('[ask] Blob files found:', blobs.length);
 
-      const contents = await Promise.all(
-        blobs
-          .filter(b => b.pathname.endsWith('.txt'))
-          .map(async (blob) => {
-            try {
-              const r = await fetch(blob.url, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-              });
-              if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
-              const text = await r.text();
-              console.log('Loaded:', blob.pathname, text.length, 'chars');
-              return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
-            } catch(e) {
-              console.warn('Error:', blob.pathname, e.message);
-              return '';
-            }
-          })
-      );
-      knowledgeText = contents.filter(Boolean).join('\n\n');
-      console.log('Total knowledge chars:', knowledgeText.length);
+        const contents = await Promise.all(
+          blobs
+            .filter(b => b.pathname.endsWith('.txt'))
+            .map(async (blob) => {
+              try {
+                // ✅ ไม่ใส่ Authorization header — Blob URL มี signed token ในตัวอยู่แล้ว
+                const r = await fetch(blob.url);
+                if (!r.ok) { console.warn('[ask] Fetch failed:', blob.pathname, r.status); return ''; }
+                const text = await r.text();
+                return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
+              } catch(e) {
+                console.warn('[ask] Read error:', blob.pathname, e.message);
+                return '';
+              }
+            })
+        );
+        knowledgeText = contents.filter(Boolean).join('\n\n');
+        console.log('[ask] Total knowledge chars:', knowledgeText.length);
+      }
     } catch (e) {
-      console.warn('Blob fetch failed:', e.message);
+      console.warn('[ask] Blob import/list error:', e.message);
     }
 
     // ── Hybrid: filter ไฟล์ตามประเภทคำถาม → ส่งทั้งไฟล์ ────────
@@ -239,7 +241,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
+        model:      'claude-sonnet-4-6',
         max_tokens: 1500,
         system,
         messages: [{ role: 'user', content: userPrompt }],

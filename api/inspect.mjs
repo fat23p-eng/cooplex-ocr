@@ -31,8 +31,8 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
       // ✅ ใช้ token (ไม่ใช่ storeId)
-      const token = process.env.knowledge_public_READ_WRITE_TOKEN
-                 || process.env.BLOB_READ_WRITE_TOKEN;
+      // ✅ token ตัวเดียวที่ยืนยันแล้วว่าใช้งานได้จริง
+      const token = process.env.knowledge_public_READ_WRITE_TOKEN;
       if (!token) {
         console.warn('Blob token not set');
       } else {
@@ -196,7 +196,7 @@ JSON format:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
+        model:      'claude-sonnet-4-6',
         max_tokens: 4000,
         system,
         messages: [{ role: 'user', content: userPrompt }],
