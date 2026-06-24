@@ -19,49 +19,66 @@ export default async function handler(req, res) {
     }[filter || 'all'];
 
     // ── ดึง Knowledge จาก Vercel Blob ──────────────────────────
-    // ✅ token ตัวเดียวที่ยืนยันแล้วว่าใช้งานได้จริง (ดู Environment Variables)
     let knowledgeText = '';
     try {
       const { list } = await import('@vercel/blob');
-      const token = process.env.knowledge_public_READ_WRITE_TOKEN;
-      if (!token) {
-        console.warn('[ask] knowledge_public_READ_WRITE_TOKEN not set — knowledge fetch skipped');
-      } else {
-        const { blobs } = await list({ token, limit: 100 });
-        console.log('[ask] Blob files found:', blobs.length);
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      console.log('token:', token ? token.slice(0,20)+'...' : 'NOT SET');
+      const { blobs } = await list({ limit: 100, token });
+      console.log('Blob files:', blobs.length);
 
-        const contents = await Promise.all(
-          blobs
-            .filter(b => b.pathname.endsWith('.txt'))
-            .map(async (blob) => {
-              try {
-                // ✅ ไม่ใส่ Authorization header — Blob URL มี signed token ในตัวอยู่แล้ว
-                const r = await fetch(blob.url);
-                if (!r.ok) { console.warn('[ask] Fetch failed:', blob.pathname, r.status); return ''; }
-                const text = await r.text();
-                return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
-              } catch(e) {
-                console.warn('[ask] Read error:', blob.pathname, e.message);
-                return '';
-              }
-            })
-        );
-        knowledgeText = contents.filter(Boolean).join('\n\n');
-        console.log('[ask] Total knowledge chars:', knowledgeText.length);
-      }
+      const contents = await Promise.all(
+        blobs
+          .filter(b => b.pathname.endsWith('.txt'))
+          .map(async (blob) => {
+            try {
+              const r = await fetch(blob.url, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+              });
+              if (!r.ok) { console.warn('Failed:', blob.pathname, r.status); return ''; }
+              const text = await r.text();
+              console.log('Loaded:', blob.pathname, text.length, 'chars');
+              return text.trim() ? '[' + blob.pathname + ']\n' + text : '';
+            } catch(e) {
+              console.warn('Error:', blob.pathname, e.message);
+              return '';
+            }
+          })
+      );
+      knowledgeText = contents.filter(Boolean).join('\n\n');
+      console.log('Total knowledge chars:', knowledgeText.length);
     } catch (e) {
-      console.warn('[ask] Blob import/list error:', e.message);
+      console.warn('Blob fetch failed:', e.message);
     }
 
-    // ── Hybrid: filter ไฟล์ตามประเภทคำถาม → ส่งทั้งไฟล์ ────────
-    // ราคา: ~$0.077/ครั้ง (vs Full Context $0.40, RAG $0.03)
-    // แม่นกว่า keyword chunk เพราะส่งทั้งไฟล์ ไม่ตัดข้อมูลออก
+    // ── ส่ง knowledge ทั้งหมดให้ Claude โดยไม่ filter ──────────
+    // เหตุผล: ฐานข้อมูลมีไม่กี่ไฟล์ ขนาดรวม ~30k-50k chars เท่านั้น
+    // (เล็กกว่า context window มาก) การ filter ก่อนด้วย keyword
+    // มีความเสี่ยงสูงที่จะตัดไฟล์สำคัญออกถ้าคำถามไม่มี keyword ตรงเป๊ะ
+    // เช่น "หลักเกณฑ์การตั้งค่าเผื่อหนี้สงสัยจะสูญ" ไม่มีคำว่า
+    // "ระเบียบ/คำแนะนำ/ประกาศ" เลย ทำให้ needAll=true แล้วไฟล์ที่ถูกต้อง
+    // แข่งคะแนนแพ้ไฟล์อื่นเพราะค้นแค่ 500 ตัวอักษรแรกของแต่ละไฟล์
+    // ส่งทั้งหมดเลยปลอดภัยกว่า ต้นทุนเพิ่มขึ้นเล็กน้อยแต่ไม่พลาดไฟล์สำคัญ
     let context = '';
     let usedFiles = [];
     if (knowledgeText) {
-      // แยกไฟล์
       const fileBlocks = knowledgeText.split(/(?=\[[^\]]+\.txt\])/).filter(b => b.trim());
 
+      for (const block of fileBlocks) {
+        const nameMatch = block.match(/^\[([^\]]+\.txt)\]/);
+        const fileName  = nameMatch ? nameMatch[1] : 'unknown.txt';
+        context += '\n\n' + block;
+        usedFiles.push(fileName);
+      }
+
+      console.log('[ask] Sending ALL files (no filtering):', usedFiles.length, 'files,', context.length, 'chars');
+      console.log('[ask] Files:', usedFiles.join(', '));
+    }
+
+    /* ── Hybrid filtering (ปิดใช้งานไว้ — เก็บไว้เผื่อ knowledge โตขึ้นมากในอนาคต) ──
+    // ถ้าวันหน้าไฟล์รวมกันเกิน ~150k chars ค่อยพิจารณาเปิดใช้ใหม่
+    // พร้อมแก้ไขให้ค้นทั้งไฟล์ ไม่ใช่แค่ 500 ตัวอักษรแรก
+    if (false) {
       // จำแนกประเภทคำถาม
       const q = question.toLowerCase();
       const needLaw      = q.includes('มาตรา') || q.includes('พ.ร.บ') || q.includes('บัญญัติ');
@@ -137,6 +154,7 @@ export default async function handler(req, res) {
       console.log('Files:', usedFiles.join(', '));
       console.log('Context chars:', totalChars);
     }
+    */ // ── จบ Hybrid filtering ที่ปิดใช้งานไว้ ──────────────────
 
     // ── System Prompt ──────────────────────────────────
     const system = `คุณคือ CoopLex AI ผู้เชี่ยวชาญด้านกฎหมายสหกรณ์ไทย
@@ -241,7 +259,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-6',
+        model:      'claude-sonnet-4-20250514',
         max_tokens: 1500,
         system,
         messages: [{ role: 'user', content: userPrompt }],
