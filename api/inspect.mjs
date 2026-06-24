@@ -31,8 +31,8 @@ export default async function handler(req, res) {
     try {
       const { list } = await import('@vercel/blob');
       // ✅ ใช้ token (ไม่ใช่ storeId)
-      // ✅ token ตัวเดียวที่ยืนยันแล้วว่าใช้งานได้จริง
-      const token = process.env.knowledge_public_READ_WRITE_TOKEN;
+      const token = process.env.knowledge_public_READ_WRITE_TOKEN
+                 || process.env.BLOB_READ_WRITE_TOKEN;
       if (!token) {
         console.warn('Blob token not set');
       } else {

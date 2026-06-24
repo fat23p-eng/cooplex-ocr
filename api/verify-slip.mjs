@@ -1,7 +1,5 @@
-// api/verify-slip.js — ตรวจสลิปด้วย Claude Vision + เพิ่ม quota ใน Vercel Blob
-// ✅ เปลี่ยนจาก KV → Blob (project ไม่มี KV ผูกไว้ มีแค่ knowledge-public Blob Store)
-// ✅ ใช้ token เดียวกับ ask.mjs/inspect.mjs/quota.mjs: knowledge_public_READ_WRITE_TOKEN
-// ต้องตั้ง env: CLAUDE_API_KEY, knowledge_public_READ_WRITE_TOKEN
+// api/verify-slip.js — ตรวจสลิปด้วย Claude Vision + เพิ่ม quota ใน Vercel KV
+// ต้องตั้ง env: CLAUDE_API_KEY, KV_REST_API_URL, KV_REST_API_TOKEN
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -87,10 +85,9 @@ export default async function handler(req, res) {
     }
 
     // ── 3. ตรวจสลิปซ้ำ (กัน reuse) ─────────────────────
-    const slipId  = (slip.ref || (slip.date + '_' + paid)).replace(/[^a-zA-Z0-9_.-]/g, '_');
-    const slipPath = `slips/${slipId}.json`;
-    const existingSlip = await blobGetJSON(slipPath);
-    if (existingSlip) {
+    const slipKey = `slip:${slip.ref || slip.date + '_' + paid}`;
+    const kvGet = await kvFetch('GET', slipKey);
+    if (kvGet) {
       return res.status(200).json({
         ok: false,
         reason: 'สลิปนี้ถูกใช้ไปแล้ว กรุณาโอนใหม่',
@@ -98,8 +95,8 @@ export default async function handler(req, res) {
     }
 
     // ── 4. บันทึกสลิป + เพิ่ม quota ─────────────────────
-    // บันทึกสลิปไว้กัน reuse (ไม่มี auto-expire แบบ KV TTL — แต่ path เฉพาะตัวกันชนกันได้)
-    await blobSetJSON(slipPath, { userId, amount: paid, date: slip.date, usedAt: Date.now() });
+    // บันทึกสลิปไว้ 30 วัน (กัน reuse)
+    await kvFetch('SET', slipKey, userId, 'EX', 60 * 60 * 24 * 30);
 
     // กำหนด bonus ตาม action
     const bonusMap = {
@@ -109,9 +106,10 @@ export default async function handler(req, res) {
     };
     const bonus = bonusMap[action] || bonusMap.ask;
 
-    // ✅ เพิ่ม bonus quota ใน Blob — path เดียวกับที่ quota.mjs ต้องอ่าน (ดูหมายเหตุด้านล่าง)
-    const bonusPath = `bonus/${userId}.json`;
-    const current = (await blobGetJSON(bonusPath)) || { ask: 0, inspect: 0, ocr: 0 };
+    // เพิ่ม quota ใน KV
+    const quotaKey = `quota:${userId}`;
+    const existing = await kvFetch('GET', quotaKey);
+    const current = existing ? JSON.parse(existing) : { ask: 0, inspect: 0, ocr: 0 };
 
     const updated = {
       ask:     (current.ask     || 0) + (bonus.ask     || 0),
@@ -120,9 +118,9 @@ export default async function handler(req, res) {
       updatedAt: new Date().toISOString(),
     };
 
-    await blobSetJSON(bonusPath, updated);
+    await kvFetch('SET', quotaKey, JSON.stringify(updated), 'EX', 60 * 60 * 24 * 365);
 
-    console.log('Bonus quota updated:', userId, updated);
+    console.log('Quota updated:', userId, updated);
 
     return res.status(200).json({
       ok:     true,
@@ -137,44 +135,20 @@ export default async function handler(req, res) {
   }
 }
 
-// ── Vercel Blob helpers (แทน KV) ─────────────────────
-// เก็บ "bonus" (โควต้าซื้อเพิ่ม) แยกจาก "daily quota" ใน quota.mjs
-// path: bonus/{userId}.json  — ไม่ผูกกับวัน เพราะโบนัสที่จ่ายเงินซื้อไม่หมดอายุรายวัน
-function getBlobToken() {
-  return process.env.knowledge_public_READ_WRITE_TOKEN;
-}
-
-async function blobGetJSON(path) {
-  const token = getBlobToken();
-  if (!token) return null;
+// ── Vercel KV REST helper ────────────────────────────
+async function kvFetch(cmd, ...args) {
+  const url  = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  if (!url || !token) { console.warn('KV env vars not set'); return null; }
   try {
-    const { list } = await import('@vercel/blob');
-    const { blobs } = await list({ token, prefix: path });
-    const match = blobs.find(b => b.pathname === path);
-    if (!match) return null;
-    const r = await fetch(match.url);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch (e) {
-    console.warn('blobGetJSON error:', path, e.message);
-    return null;
-  }
-}
-
-async function blobSetJSON(path, data) {
-  const token = getBlobToken();
-  if (!token) { console.warn('Blob token not set — cannot save', path); return false; }
-  try {
-    const { put } = await import('@vercel/blob');
-    await put(path, JSON.stringify(data), {
-      access: 'public',
-      token,
-      addRandomSuffix: false,
-      allowOverwrite: true,
+    const r = await fetch(`${url}/${[cmd, ...args].map(encodeURIComponent).join('/')}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return true;
-  } catch (e) {
-    console.warn('blobSetJSON error:', path, e.message);
-    return false;
+    if (!r.ok) { console.warn('KV fetch failed:', r.status); return null; }
+    const d = await r.json();
+    return d.result ?? null;
+  } catch(e) {
+    console.warn('KV fetch error:', e.message);
+    return null;
   }
 }
