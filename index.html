@@ -929,7 +929,8 @@ async function loadQuota() {
   try {
     const r = await fetch('/api/quota', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: uid, action: 'get' })
+      // ✅ ส่ง authToken ไปด้วย — server จะตรวจสอบ role จริงจาก token แทนเชื่อ client
+      body: JSON.stringify({ userId: uid, action: 'get', authToken: localStorage.getItem('cl_token') || '' })
     });
     const d = await r.json();
     if (d.ok) { _quota = d.quota; uqui(); }
@@ -941,7 +942,8 @@ async function useQuota(type) {
   try {
     const r = await fetch('/api/quota', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: uid, action: 'use', type })
+      // ✅ ส่ง authToken ไปด้วย — server จะตรวจสอบ role จริงจาก token แทนเชื่อ client
+      body: JSON.stringify({ userId: uid, action: 'use', type, authToken: localStorage.getItem('cl_token') || '' })
     });
     const d = await r.json();
     if (d.ok) { _quota = d.quota; uqui(); return true; }
@@ -1028,10 +1030,10 @@ async function callAsk(question, filter) {
   if (d.error) throw new Error(d.error);
   return d.answer;
 }
-async function callInspect(docText, inspectType, coopType, coopSize) {
+async function callInspect(docText, docType, coopType, coopSize) {
   const r = await fetch('/api/inspect', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ docText, inspectType, coopType, coopSize })
+    body: JSON.stringify({ docText, docType, coopType, coopSize })
   });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
@@ -1064,8 +1066,9 @@ async function ep(f){
   try{
     if(!window.pdfjsLib){await new Promise((r,j)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=r;s.onerror=j;document.head.appendChild(s);});pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
     const ab=await f.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-    f._pages=pdf.numPages; f._ab=ab;
+    // ✅ ใช้ ab.slice(0) ให้ pdfjs — ป้องกัน ab ตัวจริงถูก detach (pdf.js ใช้ zero-copy transfer)
+    const pdf=await pdfjsLib.getDocument({data:ab.slice(0)}).promise;
+    f._pages=pdf.numPages; f._ab=ab; // เก็บ ab ตัวเดิม (ยังไม่ถูก detach) ไว้ใช้ซ้ำ
     return pdf.numPages;
   }catch(e){
     console.warn('ep() failed:',e.message);
@@ -1080,7 +1083,8 @@ async function hif(files){
 }
 async function doInspect(){
   if(!iFile)return toast('⚠️ กรุณาแนบเอกสารก่อน');
-  const pg=await ep(iFile);
+  // ✅ ใช้ pages ที่ cache ไว้แล้วจาก hif() — ไม่เรียก ep() ซ้ำ (ป้องกัน arrayBuffer ถูกอ่าน/detach 2 รอบ)
+  const pg=iFile._pages || await ep(iFile);
   if(!checkPageLimit(pg, maxInspectPages(), 'ตรวจเอกสาร')) return;
   const p=ip(pg);if(p>0&&!isAdmin()&&!isOfficer()){showM('insp',p);return;}await _di();
 }
